@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       id: 1,
       farmerName: "Thiru R. Selvam",
-      avatar: "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-1.png?raw=true",
+      avatar: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png",
       crop: "Salem Turmeric",
       quantity: 1200,
       quantityDisplay: "1,200 Kg",
@@ -24,12 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
       ratingCount: 14,
       verified: true,
       phone: "+919845011111",
-      image: "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-1.png?raw=true"
+      image: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png"
     },
     {
       id: 2,
       farmerName: "Smt. K. Gomathi",
-      avatar: "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-2.png?raw=true",
+      avatar: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-2.png",
       crop: "Onions",
       quantity: 3500,
       quantityDisplay: "3.5 Tonnes",
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ratingCount: 22,
       verified: true,
       phone: "+919845022222",
-      image: "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-2.png?raw=true"
+      image: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-2.png"
     }
   ];
 
@@ -243,13 +243,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       card.innerHTML = `
         <div class="card-image-box">
-          <img src="${item.image}" alt="${item.crop} harvest">
+          <img src="${item.image}" alt="${item.crop} harvest" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/hero_bg.png';">
           ${verificationBadgeHtml}
           <div class="crop-price-badge">${item.price}</div>
         </div>
         <div class="card-content">
           <div class="card-farmer-info">
-            <img src="${item.avatar}" alt="${item.farmerName}" class="farmer-avatar">
+            <img src="${item.avatar}" alt="${item.farmerName}" class="farmer-avatar" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png';">
             <div class="farmer-name-details">
               <h4>${item.farmerName}</h4>
               <div class="farmer-rating">
@@ -294,6 +294,10 @@ document.addEventListener('DOMContentLoaded', () => {
                           FALLBACK_LISTINGS.find(item => String(item.id) === String(farmerId));
     if (!targetListing) return;
 
+    modalFarmerAvatar.onerror = function () {
+      this.onerror = null;
+      this.src = 'https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png';
+    };
     modalFarmerAvatar.src = targetListing.avatar;
     modalFarmerName.textContent = targetListing.farmerName;
     modalFarmerLocation.textContent = `${targetListing.location} District, Tamil Nadu`;
@@ -367,15 +371,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const parsedQty = parseFloat(qtyInput.replace(/[^0-9.]/g, '')) || 800;
 
-      let defaultAvatar = "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-1.png?raw=true";
-      let defaultCropImg = "https://github.com/sharan643-gif/Agrilink/blob/main/hero_bg.png?raw=true";
+      let defaultAvatar = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png";
+      let defaultCropImg = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/hero_bg.png";
       
       if (crop === 'Onions' || crop === 'Mangoes (Alphonso)') {
-        defaultAvatar = "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-2.png?raw=true";
-        defaultCropImg = "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-2.png?raw=true";
+        defaultAvatar = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-2.png";
+        defaultCropImg = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-2.png";
       } else if (crop === 'Salem Turmeric') {
-        defaultAvatar = "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-1.png?raw=true";
-        defaultCropImg = "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-1.png?raw=true";
+        defaultAvatar = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png";
+        defaultCropImg = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png";
       }
 
       const listingData = {
