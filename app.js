@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       id: 1,
       farmerName: "Thiru R. Selvam",
-      avatar: "assets/images/farmer-1.png",
+      avatar: "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-1.png?raw=true",
       crop: "Salem Turmeric",
       quantity: 1200,
       quantityDisplay: "1,200 Kg",
@@ -24,12 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
       ratingCount: 14,
       verified: true,
       phone: "+919845011111",
-      image: "assets/images/farmer-1.png"
+      image: "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-1.png?raw=true"
     },
     {
       id: 2,
       farmerName: "Smt. K. Gomathi",
-      avatar: "assets/images/farmer-2.png",
+      avatar: "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-2.png?raw=true",
       crop: "Onions",
       quantity: 3500,
       quantityDisplay: "3.5 Tonnes",
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ratingCount: 22,
       verified: true,
       phone: "+919845022222",
-      image: "assets/images/farmer-2.png"
+      image: "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-2.png?raw=true"
     }
   ];
 
@@ -367,15 +367,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const parsedQty = parseFloat(qtyInput.replace(/[^0-9.]/g, '')) || 800;
 
-      let defaultAvatar = "assets/images/farmer-1.png";
-      let defaultCropImg = "assets/images/hero_bg.png";
+      let defaultAvatar = "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-1.png?raw=true";
+      let defaultCropImg = "https://github.com/sharan643-gif/Agrilink/blob/main/hero_bg.png?raw=true";
       
       if (crop === 'Onions' || crop === 'Mangoes (Alphonso)') {
-        defaultAvatar = "assets/images/farmer-2.png";
-        defaultCropImg = "assets/images/farmer-2.png";
+        defaultAvatar = "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-2.png?raw=true";
+        defaultCropImg = "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-2.png?raw=true";
       } else if (crop === 'Salem Turmeric') {
-        defaultAvatar = "assets/images/farmer-1.png";
-        defaultCropImg = "assets/images/farmer-1.png";
+        defaultAvatar = "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-1.png?raw=true";
+        defaultCropImg = "https://github.com/sharan643-gif/Agrilink/blob/main/farmer-1.png?raw=true";
       }
 
       const listingData = {
