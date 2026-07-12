@@ -2415,6 +2415,16 @@ textarea.auth-input {
   text-decoration: underline;
 }
 
+/* The Farmer/Buyer Login buttons in the "not signed in" profile view are
+   <a> tags living inside .auth-footer, so the green link colour above was
+   winning over .auth-btn's white text — making the farmer button's label
+   invisible (green text on green background). Keep these two buttons white. */
+.auth-footer a.auth-btn,
+.auth-footer a.auth-btn:hover {
+  color: white;
+  text-decoration: none;
+}
+
 #page-buyer-signin .auth-footer a {
   color: #1565C0;
 }
