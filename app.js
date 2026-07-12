@@ -75,9 +75,26 @@ document.addEventListener('DOMContentLoaded', () => {
   })();
 
   // ==================== STATE & BACKEND CONFIG ====================
-  const API_BASE_URL = 'http://localhost:5000/api';
+  // We now talk to Supabase directly from the browser instead of going
+  // through the Express server (server.js / API_BASE_URL). Supabase is
+  // always-on and publicly reachable, so any device — including a buyer's
+  // phone anywhere on the internet, not just laptops on the same WiFi as a
+  // locally-running server — can read and write listings correctly. This
+  // is initialized up here (rather than further down, where it used to
+  // live) because handleNavigation() below can call fetchListings()
+  // immediately on page load, before the rest of the script has run.
+  const SUPABASE_URL = "https://ofbwcyncwuqevbmlmafa.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mYndjeW5jd3VxZXZibWxtYWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4Mjc3OTAsImV4cCI6MjA5OTQwMzc5MH0.MKKH3du-vv9X2n4as1VahfGyUgNc1Nlks60sDoWlGTc";
 
-  // Local fallback mock database in case the database server is not running yet
+  let supabaseClient = null;
+  if (typeof supabase !== 'undefined') {
+    // Loaded via the Supabase CDN script tag in index.html
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } else {
+    console.error('Supabase SDK not found — make sure the Supabase <script> tag is included in index.html before app.js.');
+  }
+
+  // Local fallback mock database in case Supabase is unreachable
   const FALLBACK_LISTINGS = [
     {
       id: 1,
@@ -251,27 +268,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const locVal = filterLocationSelect.value;
     const qtyVal = filterQuantitySelect.value;
 
-    // Construct URL with Query params for MongoDB filtering
-    let url = `${API_BASE_URL}/listings?`;
-    if (cropVal) url += `crop=${encodeURIComponent(cropVal)}&`;
-    if (locVal) url += `location=${encodeURIComponent(locVal)}&`;
-    if (qtyVal) url += `quantity=${encodeURIComponent(qtyVal)}&`;
-
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('API server responded with error status');
+      if (!supabaseClient) {
+        throw new Error('Supabase client was not initialized properly.');
       }
-      listings = await response.json();
+
+      let query = supabaseClient.from('listings').select('*').order('created_at', { ascending: false });
+
+      if (cropVal) query = query.ilike('crop', `%${cropVal}%`);
+      if (locVal) query = query.eq('location', locVal);
+      if (qtyVal === 'small') query = query.lt('quantity', 500);
+      else if (qtyVal === 'medium') query = query.gte('quantity', 500).lte('quantity', 2000);
+      else if (qtyVal === 'large') query = query.gt('quantity', 2000);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      listings = (data || []).map(normalizeListing);
       renderDirectory(listings);
     } catch (error) {
-      console.warn('API error, falling back to local simulation data:', error.message);
+      console.warn('Supabase fetch error, falling back to local simulation data:', error.message);
       // Fallback local query simulation
       simulateLocalQuery(cropVal, locVal, qtyVal);
     }
   }
 
-  // Fallback simulator if backend is offline
+  // Fallback simulator if the database is unreachable
   function simulateLocalQuery(cropVal, locVal, qtyVal) {
     let mockSrc = listings.length > 0 ? listings : FALLBACK_LISTINGS;
     const filtered = mockSrc.filter(item => {
@@ -285,6 +307,34 @@ document.addEventListener('DOMContentLoaded', () => {
       return cropMatch && locMatch && qtyMatch;
     });
     renderDirectory(filtered);
+  }
+
+  // Supabase stores columns as snake_case (farmer_name, quantity_display, ...)
+  // but the rest of this file (and the directory card / modal renderers)
+  // expect camelCase. Normalize every row we get back so those all just work,
+  // the same way server.js used to before we cut it out of this flow.
+  function normalizeListing(row) {
+    if (!row) return row;
+    return {
+      id: row.id,
+      farmerName: row.farmer_name ?? row.farmerName,
+      avatar: row.avatar,
+      crop: row.crop,
+      quantity: row.quantity,
+      quantityDisplay: row.quantity_display ?? row.quantityDisplay,
+      price: row.price,
+      location: row.location,
+      address: row.address ?? '',
+      description: row.description,
+      rating: row.rating,
+      ratingCount: row.rating_count ?? row.ratingCount ?? 0,
+      verified: row.verified,
+      phone: row.phone,
+      altPhone: row.alt_phone ?? row.altPhone ?? '',
+      email: row.email ?? '',
+      image: row.image,
+      createdAt: row.created_at ?? row.createdAt
+    };
   }
 
 
@@ -551,17 +601,36 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       try {
-        const response = await fetch(`${API_BASE_URL}/listings`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(listingData)
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to create listing on backend database');
+        if (!supabaseClient) {
+          throw new Error('Supabase client was not initialized properly.');
         }
 
-        showToast("Success! Listing saved in MongoDB database.");
+        const { data, error } = await supabaseClient
+          .from('listings')
+          .insert([{
+            farmer_name: listingData.farmerName,
+            avatar: listingData.avatar,
+            crop: listingData.crop,
+            quantity: listingData.quantity,
+            quantity_display: listingData.quantityDisplay,
+            price: listingData.price,
+            location: listingData.location,
+            address: listingData.address,
+            description: listingData.description,
+            phone: listingData.phone,
+            alt_phone: listingData.altPhone,
+            email: listingData.email,
+            image: listingData.image,
+            verified: true,
+            rating: '5.0',
+            rating_count: 0
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        showToast("Success! Listing saved to the database.");
         simulateListingForm.reset();
         
         setTimeout(() => {
@@ -569,9 +638,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1500);
 
       } catch (error) {
-        console.warn('API error, saving listing in local browser memory instead:', error.message);
+        console.warn('Supabase error, saving listing in local browser memory instead:', error.message);
         
-        // Offline Fallback simulation
+        // Offline Fallback simulation — only visible in this browser tab
         const fallbackIdListing = {
           ...listingData,
           id: Date.now(),
@@ -580,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
           verified: true
         };
         listings.unshift(fallbackIdListing);
-        showToast("Success! Listing added to temporary browser state.", "success");
+        showToast("Could not reach the database — listing saved locally only and won't be visible to other buyers.", "error");
         simulateListingForm.reset();
 
         setTimeout(() => {
@@ -606,41 +675,31 @@ document.addEventListener('DOMContentLoaded', () => {
       const regData = { name, phone, email, role, location, village, message };
 
       try {
-        const response = await fetch(`${API_BASE_URL}/registrations`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(regData)
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to submit registration on backend database');
+        if (!supabaseClient) {
+          throw new Error('Supabase client was not initialized properly.');
         }
 
-        showToast(`Registration saved to MongoDB! Welcome, ${name}.`);
+        const { error } = await supabaseClient
+          .from('registrations')
+          .insert([regData]);
+
+        if (error) throw error;
+
+        showToast(`Registration saved! Welcome, ${name}.`);
         pilotRegistrationForm.reset();
 
       } catch (error) {
-        console.warn('API error, simulating registration locally:', error.message);
-        showToast(`Registered successfully (Local Sim)! Welcome, ${name}.`);
-        pilotRegistrationForm.reset();
+        console.warn('Supabase error, could not save registration:', error.message);
+        showToast(`Could not save your registration — please try again.`, 'error');
       }
     });
   }
 
   // ==================== SUPABASE AUTHENTICATION SYSTEM ====================
+  // (supabaseClient is already initialized near the top of this file)
   // Check if we are on the farmer sign-in page or buyer sign-in page
   const farmerLoginForm = document.getElementById('farmer-login-form');
   const buyerLoginForm = document.getElementById('buyer-login-form');
-
-  // Supabase Credentials (configured in .env on server, here as defaults)
-  const SUPABASE_URL = "https://ofbwcyncwuqevbmlmafa.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mYndjeW5jd3VxZXZibWxtYWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4Mjc3OTAsImV4cCI6MjA5OTQwMzc5MH0.MKKH3du-vv9X2n4as1VahfGyUgNc1Nlks60sDoWlGTc";
-
-  let supabaseClient = null;
-  if (typeof supabase !== 'undefined') {
-    // Loaded via Supabase CDN in index.html
-    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
 
   // Helper to show form specific inline status alerts
   function showAuthMessage(formContainer, text, type = 'error') {
