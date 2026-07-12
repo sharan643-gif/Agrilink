@@ -10,21 +10,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // up the toggle button, persists the choice, and keeps aria state in sync.
   (function initThemeToggle() {
     const root = document.documentElement;
-    const toggleBtn = document.getElementById('theme-toggle');
-    if (!toggleBtn) return;
+    const toggleBtns = document.querySelectorAll('.theme-toggle');
+    if (!toggleBtns.length) return;
 
     const syncAria = () => {
       const isDark = root.getAttribute('data-theme') === 'dark';
-      toggleBtn.setAttribute('aria-checked', String(isDark));
+      toggleBtns.forEach(btn => btn.setAttribute('aria-checked', String(isDark)));
     };
     syncAria();
 
-    toggleBtn.addEventListener('click', () => {
-      const isDark = root.getAttribute('data-theme') === 'dark';
-      const next = isDark ? 'light' : 'dark';
-      root.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-      syncAria();
+    toggleBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const isDark = root.getAttribute('data-theme') === 'dark';
+        const next = isDark ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        syncAria();
+      });
     });
 
     // Follow system preference changes if the user hasn't chosen manually
@@ -143,8 +145,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const header = document.getElementById('header');
   const navMenu = document.getElementById('nav-menu');
   const mobileToggle = document.getElementById('mobile-toggle');
+  const mobileMenuBackdrop = document.getElementById('mobile-menu-backdrop');
   const pageViews = document.querySelectorAll('.page-view');
   const navLinks = document.querySelectorAll('.nav-link, .nav-cta');
+  const tabbarIndicator = document.getElementById('tabbar-indicator');
+  const tabbarGlass = document.querySelector('.mobile-tabbar-glass');
   
   // Search Directory DOMs
   const directoryGrid = document.getElementById('directory-grid');
@@ -170,7 +175,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalWaBtn = document.getElementById('modal-wa-btn');
 
   // Forms
-  const simulateListingForm = document.getElementById('simulate-listing-form');
   const pilotRegistrationForm = document.getElementById('pilot-registration-form');
   const toastContainer = document.getElementById('toast-container');
 
@@ -187,7 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
     '/farmer-signin': 'page-farmer-signin',
     '/buyer-signin': 'page-buyer-signin',
     '/farmer-register': 'page-farmer-register',
-    '/buyer-register': 'page-buyer-register'
+    '/buyer-register': 'page-buyer-register',
+    '/profile': 'page-profile'
   };
 
   function handleNavigation() {
@@ -228,10 +233,111 @@ document.addEventListener('DOMContentLoaded', () => {
     if (targetPageId === 'page-buyers') {
       fetchListings();
     }
+    if (targetPageId === 'page-profile') {
+      renderProfile();
+    }
+
+    // Slide/morph the liquid indicator under whichever tab is now active
+    updateTabbarIndicator();
 
     // Close Mobile Menu if open
-    if (navMenu) navMenu.classList.remove('active');
-    if (mobileToggle) mobileToggle.classList.remove('active');
+    closeMobileMenu();
+  }
+
+  // ==================== MOBILE TAB BAR LIQUID INDICATOR ====================
+  // Moves + resizes the glass "blob" behind the active tab so it slides and
+  // morphs to fit whichever icon is selected — the signature iOS 27 liquid
+  // glass motion. Only reads layout (getBoundingClientRect) on nav changes
+  // and resize, never on a continuous loop, so it stays cheap.
+  function updateTabbarIndicator() {
+    if (!tabbarIndicator || !tabbarGlass) return;
+    const activeTab = tabbarGlass.querySelector('.tabbar-link.active');
+    if (!activeTab) return;
+
+    const containerRect = tabbarGlass.getBoundingClientRect();
+    const tabRect = activeTab.getBoundingClientRect();
+    const baseOffset = 4; // matches .tabbar-indicator's CSS `left: 4px`
+    const offsetX = (tabRect.left - containerRect.left) - baseOffset;
+
+    tabbarIndicator.style.width = `${tabRect.width}px`;
+    tabbarIndicator.style.transform = `translateX(${offsetX}px)`;
+  }
+
+  window.addEventListener('resize', () => {
+    window.clearTimeout(window.__tabbarResizeT);
+    window.__tabbarResizeT = window.setTimeout(updateTabbarIndicator, 120);
+  });
+
+  // Position it correctly on first load (no transition flash — the CSS
+  // transition only kicks in on subsequent changes since this runs before
+  // the browser's first paint of the mobile tab bar).
+  updateTabbarIndicator();
+
+  // ==================== PROFILE PAGE ====================
+  function renderProfile() {
+    const signedInBox = document.getElementById('profile-signed-in');
+    const signedOutBox = document.getElementById('profile-signed-out');
+    if (!signedInBox || !signedOutBox) return;
+
+    const role = localStorage.getItem('auth_role');
+    const sessionRaw = localStorage.getItem('auth_session');
+
+    let session = null;
+    try {
+      session = sessionRaw ? JSON.parse(sessionRaw) : null;
+    } catch (e) {
+      session = null;
+    }
+
+    const user = session && session.user ? session.user : null;
+
+    if (!role || !user) {
+      signedInBox.style.display = 'none';
+      signedOutBox.style.display = 'block';
+      return;
+    }
+
+    signedOutBox.style.display = 'none';
+    signedInBox.style.display = 'block';
+
+    const meta = user.user_metadata || {};
+    const name = meta.name || 'Not available';
+    const email = user.email || 'Not available';
+    const phone = meta.phone || 'Not available';
+    const location = meta.location || 'Not available';
+
+    document.getElementById('profile-avatar-initial').textContent = name.charAt(0).toUpperCase() || '?';
+    document.getElementById('profile-name').textContent = name;
+    document.getElementById('profile-email').textContent = email;
+    document.getElementById('profile-phone').textContent = phone;
+    document.getElementById('profile-location').textContent = location;
+
+    const roleBadge = document.getElementById('profile-role-badge');
+    const extraLabel = document.getElementById('profile-extra-label');
+    const extraValue = document.getElementById('profile-extra-value');
+    const dashboardBtn = document.getElementById('profile-dashboard-btn');
+
+    if (role === 'buyer') {
+      roleBadge.textContent = 'Buyer';
+      extraLabel.textContent = 'Business Address';
+      extraValue.textContent = meta.address || 'Not available';
+      dashboardBtn.onclick = () => { window.location.hash = '#/buyers'; };
+    } else {
+      roleBadge.textContent = 'Farmer';
+      extraLabel.textContent = 'Primary Crop';
+      extraValue.textContent = meta.crop_type || 'Not available';
+      dashboardBtn.onclick = () => { window.location.hash = '#/farmers'; };
+    }
+
+    const signOutBtn = document.getElementById('profile-signout-btn');
+    if (signOutBtn) {
+      signOutBtn.onclick = () => {
+        localStorage.removeItem('auth_role');
+        localStorage.removeItem('auth_session');
+        showToast && showToast('Signed out successfully.', 'success');
+        window.location.hash = '#/';
+      };
+    }
   }
 
   window.addEventListener('hashchange', handleNavigation);
@@ -251,11 +357,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // ==================== MOBILE NAVIGATION ====================
+  function closeMobileMenu() {
+    if (navMenu) navMenu.classList.remove('active');
+    if (mobileToggle) mobileToggle.classList.remove('active');
+    if (mobileMenuBackdrop) mobileMenuBackdrop.classList.remove('active');
+    document.body.classList.remove('mobile-menu-open');
+  }
+
   if (mobileToggle && navMenu) {
     mobileToggle.addEventListener('click', () => {
+      const isOpening = !navMenu.classList.contains('active');
       navMenu.classList.toggle('active');
       mobileToggle.classList.toggle('active');
+      if (mobileMenuBackdrop) mobileMenuBackdrop.classList.toggle('active', isOpening);
+      document.body.classList.toggle('mobile-menu-open', isOpening);
     });
+  }
+
+  if (mobileMenuBackdrop) {
+    mobileMenuBackdrop.addEventListener('click', closeMobileMenu);
   }
 
 
@@ -553,110 +673,6 @@ document.addEventListener('DOMContentLoaded', () => {
       toast.style.transition = 'all 0.4s ease';
       setTimeout(() => { toast.remove(); }, 400);
     }, 3500);
-  }
-
-  // Simulate Farmer Produce Listing Submission
-  if (simulateListingForm) {
-    simulateListingForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const name = document.getElementById('sim-farmer-name').value;
-      const phone = document.getElementById('sim-phone').value;
-      const altPhoneInput = document.getElementById('sim-alt-phone').value;
-      const email = document.getElementById('sim-email').value;
-      const crop = document.getElementById('sim-crop-name').value;
-      const qtyInput = document.getElementById('sim-quantity').value;
-      const price = document.getElementById('sim-price').value;
-      const location = document.getElementById('sim-location').value;
-      const address = document.getElementById('sim-address').value;
-      const desc = document.getElementById('sim-description').value || "Harvest quality checked, ready to load.";
-
-      const parsedQty = parseFloat(qtyInput.replace(/[^0-9.]/g, '')) || 800;
-
-      let defaultAvatar = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png";
-      let defaultCropImg = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/hero_bg.png";
-      
-      if (crop === 'Onions' || crop === 'Mangoes (Alphonso)') {
-        defaultAvatar = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-2.png";
-        defaultCropImg = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-2.png";
-      } else if (crop === 'Salem Turmeric') {
-        defaultAvatar = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png";
-        defaultCropImg = "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png";
-      }
-
-      const listingData = {
-        farmerName: name,
-        avatar: defaultAvatar,
-        crop: crop,
-        quantity: parsedQty,
-        quantityDisplay: qtyInput,
-        price: `${price} / Unit`,
-        location: location,
-        address: address,
-        description: desc,
-        phone: phone.startsWith('+91') ? phone : `+91${phone}`,
-        altPhone: altPhoneInput ? (altPhoneInput.startsWith('+91') ? altPhoneInput : `+91${altPhoneInput}`) : '',
-        email: email,
-        image: defaultCropImg
-      };
-
-      try {
-        if (!supabaseClient) {
-          throw new Error('Supabase client was not initialized properly.');
-        }
-
-        const { data, error } = await supabaseClient
-          .from('listings')
-          .insert([{
-            farmer_name: listingData.farmerName,
-            avatar: listingData.avatar,
-            crop: listingData.crop,
-            quantity: listingData.quantity,
-            quantity_display: listingData.quantityDisplay,
-            price: listingData.price,
-            location: listingData.location,
-            address: listingData.address,
-            description: listingData.description,
-            phone: listingData.phone,
-            alt_phone: listingData.altPhone,
-            email: listingData.email,
-            image: listingData.image,
-            verified: true,
-            rating: '5.0',
-            rating_count: 0
-          }])
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        showToast("Success! Listing saved to the database.");
-        simulateListingForm.reset();
-        
-        setTimeout(() => {
-          window.location.hash = '#/buyers';
-        }, 1500);
-
-      } catch (error) {
-        console.warn('Supabase error, saving listing in local browser memory instead:', error.message);
-        
-        // Offline Fallback simulation — only visible in this browser tab
-        const fallbackIdListing = {
-          ...listingData,
-          id: Date.now(),
-          rating: "5.0",
-          ratingCount: 0,
-          verified: true
-        };
-        listings.unshift(fallbackIdListing);
-        showToast(`Could not save to the database: ${error.message || 'unknown error'}`, "error");
-        simulateListingForm.reset();
-
-        setTimeout(() => {
-          window.location.hash = '#/buyers';
-        }, 1500);
-      }
-    });
   }
 
   // Contact / Join Pilot Form Submission
