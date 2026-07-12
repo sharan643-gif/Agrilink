@@ -649,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
           verified: true
         };
         listings.unshift(fallbackIdListing);
-        showToast("Could not reach the database — listing saved locally only and won't be visible to other buyers.", "error");
+        showToast(`Could not save to the database: ${error.message || 'unknown error'}`, "error");
         simulateListingForm.reset();
 
         setTimeout(() => {
