@@ -15,37 +15,91 @@
   
   <!-- Stylesheets -->
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Tailwind CSS (utility classes used for the navigation bar) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Set theme before first paint to avoid a light/dark flash -->
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
 </head>
 <body>
 
-  <!-- Floating Header Navigation -->
+  <!-- Floating Header Navigation :: Liquid-Glass Pill Bar -->
   <header id="header">
-    <div class="container nav-container">
-      <a href="#/" class="logo" id="nav-logo">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M17 8C14.24 8 12 10.24 12 13C12 15.76 14.24 18 17 18C19.76 18 22 15.76 22 13C22 10.24 19.76 8 17 8ZM17 16.2C15.24 16.2 13.8 14.76 13.8 13C13.8 11.24 15.24 9.8 17 9.8C18.76 9.8 20.2 11.24 20.2 13C20.2 14.76 18.76 16.2 17 16.2ZM7 2C3.13 2 0 5.13 0 9C0 13.3 4.25 17.5 10 21.8C10.55 22.2 11.27 22.4 12 22.4C12.73 22.4 13.45 22.2 14 21.8C15.02 21.03 16.03 20.17 17 19.26C16 19.04 15.06 18.59 14.23 17.95C13.56 18.5 12.8 19.12 12 19.75C7 15.9 2 12.2 2 9C2 6.24 4.24 4 7 4C8.94 4 10.64 5.12 11.41 6.85C11.64 7.37 12.36 7.37 12.59 6.85C13.06 5.8 13.97 4.95 15.06 4.46C14.72 3.73 14.2 3.09 13.55 2.6C12.06 1.48 10.15 1.59 9.17 2.2C8.5 1.9 7.77 2 7 2Z"/>
-        </svg>
-        <span>Farmer-Direct</span>
-      </a>
+    <div class="container">
+      <div class="nav-container flex items-center justify-between gap-2 sm:gap-3 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.18)] px-3 py-2 sm:px-4 transition-all duration-300">
 
-      <!-- Navigation Links -->
-      <nav>
-        <ul class="nav-menu" id="nav-menu">
-          <li><a href="#/" class="nav-link active">Home</a></li>
-          <li><a href="#/farmers" class="nav-link">For Farmers</a></li>
-          <li><a href="#/buyers" class="nav-link">For Buyers</a></li>
-          <li><a href="#/how-it-works" class="nav-link">How It Works</a></li>
-          <li><a href="#/about" class="nav-link">About</a></li>
-          <li><a href="#/contact" class="nav-link nav-cta">Join Pilot</a></li>
-        </ul>
-      </nav>
+        <!-- Logo -->
+        <a href="#/" class="logo flex items-center gap-2 shrink-0" id="nav-logo">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17 8C14.24 8 12 10.24 12 13C12 15.76 14.24 18 17 18C19.76 18 22 15.76 22 13C22 10.24 19.76 8 17 8ZM17 16.2C15.24 16.2 13.8 14.76 13.8 13C13.8 11.24 15.24 9.8 17 9.8C18.76 9.8 20.2 11.24 20.2 13C20.2 14.76 18.76 16.2 17 16.2ZM7 2C3.13 2 0 5.13 0 9C0 13.3 4.25 17.5 10 21.8C10.55 22.2 11.27 22.4 12 22.4C12.73 22.4 13.45 22.2 14 21.8C15.02 21.03 16.03 20.17 17 19.26C16 19.04 15.06 18.59 14.23 17.95C13.56 18.5 12.8 19.12 12 19.75C7 15.9 2 12.2 2 9C2 6.24 4.24 4 7 4C8.94 4 10.64 5.12 11.41 6.85C11.64 7.37 12.36 7.37 12.59 6.85C13.06 5.8 13.97 4.95 15.06 4.46C14.72 3.73 14.2 3.09 13.55 2.6C12.06 1.48 10.15 1.59 9.17 2.2C8.5 1.9 7.77 2 7 2Z"/>
+          </svg>
+          <span class="hidden xs:inline">Farmer-Direct</span>
+        </a>
 
-      <!-- Hamburger Menu for Mobile -->
-      <button class="mobile-nav-toggle" id="mobile-toggle" aria-label="Toggle Menu">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
+        <!-- Navigation Links (segmented glass pill on desktop / slide-down tab sheet on mobile) -->
+        <nav class="nav-scroll" id="nav-scroll">
+          <ul class="nav-menu" id="nav-menu">
+            <li class="nav-item nav-item--icon">
+              <a href="#/" class="nav-link active">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>
+                <span>Home</span>
+              </a>
+            </li>
+            <li class="nav-item nav-item--icon">
+              <a href="#/farmers" class="nav-link">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V10"/><path d="M12 21a8 8 0 0 1-8-8c4.4 0 8 1.5 8 8Z"/><path d="M12 15a8 8 0 0 1 8-8c0 4.5-3.6 8-8 8Z"/></svg>
+                <span>For Farmers</span>
+              </a>
+            </li>
+            <li class="nav-item nav-item--icon">
+              <a href="#/buyers" class="nav-link">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+                <span>For Buyers</span>
+              </a>
+            </li>
+            <li class="nav-item nav-item--icon">
+              <a href="#/how-it-works" class="nav-link">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg>
+                <span>How It Works</span>
+              </a>
+            </li>
+            <li class="nav-item nav-item--icon">
+              <a href="#/about" class="nav-link">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r="0.9" fill="currentColor" stroke="none"/></svg>
+                <span>About</span>
+              </a>
+            </li>
+
+            <li class="nav-divider" aria-hidden="true"></li>
+
+            <li class="nav-item nav-item--text"><a href="#/farmer-signin" class="nav-link"><span>Farmer Login</span></a></li>
+            <li class="nav-item nav-item--text"><a href="#/buyer-signin" class="nav-link"><span>Buyer Login</span></a></li>
+            <li class="nav-item nav-item--cta"><a href="#/contact" class="nav-link nav-cta"><span>Join Pilot</span></a></li>
+          </ul>
+        </nav>
+
+        <!-- Dark / Light Mode Toggle -->
+        <button class="theme-toggle" id="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark mode">
+          <span class="theme-toggle-thumb">
+            <svg class="icon-sun" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0-15a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1ZM4.22 5.64a1 1 0 0 1 1.42 0l.7.71a1 1 0 1 1-1.42 1.41l-.7-.7a1 1 0 0 1 0-1.42Zm12.44 12.44a1 1 0 0 1 1.42 0l.7.71a1 1 0 0 1-1.42 1.41l-.7-.7a1 1 0 0 1 0-1.42ZM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1Zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1ZM4.22 18.36a1 1 0 0 1 0-1.42l.7-.7a1 1 0 1 1 1.42 1.41l-.7.7a1 1 0 0 1-1.42 0ZM16.66 5.64a1 1 0 0 1 0 1.42l-.7.7a1 1 0 1 1-1.42-1.41l.7-.71a1 1 0 0 1 1.42 0Z"/></svg>
+            <svg class="icon-moon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>
+          </span>
+        </button>
+
+        <!-- Hamburger Menu for Mobile -->
+        <button class="mobile-nav-toggle" id="mobile-toggle" aria-label="Toggle Menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -830,6 +884,209 @@
       </div>
     </section>
 
+    <!-- ==================== FARMER SIGN-IN VIEW ==================== -->
+    <section id="page-farmer-register" class="page-view">
+      <div class="signin-body farmer-bg-wrapper">
+        <div class="auth-card auth-card-wide">
+          <div class="auth-header">
+            <div class="auth-icon farmer-icon-bg">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 10a6 6 0 0 0-6-6H3v2a6 6 0 0 0 6 6h3Z" />
+                <path d="M12 14a6 6 0 0 1 6-6h3v2a6 6 0 0 1-6 6h-3Z" />
+                <path d="M12 22V10" />
+              </svg>
+            </div>
+            <h1 class="auth-title">Farmer Registration</h1>
+            <p class="auth-subtitle">Create a free account to list produce and reach bulk buyers directly</p>
+          </div>
+
+          <form id="farmer-register-form" novalidate>
+            <div class="auth-form-group">
+              <label for="farmer-reg-name" class="auth-label">Full Name</label>
+              <input type="text" id="farmer-reg-name" class="auth-input" placeholder="e.g. Selvam Raman" required autocomplete="name">
+            </div>
+            <div class="auth-form-group">
+              <label for="farmer-reg-email" class="auth-label">Email Address</label>
+              <input type="email" id="farmer-reg-email" class="auth-input" placeholder="farmer@village.com" required autocomplete="username">
+            </div>
+            <div class="auth-form-row">
+              <div class="auth-form-group">
+                <label for="farmer-reg-password" class="auth-label">Password</label>
+                <input type="password" id="farmer-reg-password" class="auth-input" placeholder="Min. 6 characters" required minlength="6" autocomplete="new-password">
+              </div>
+              <div class="auth-form-group">
+                <label for="farmer-reg-confirm-password" class="auth-label">Confirm Password</label>
+                <input type="password" id="farmer-reg-confirm-password" class="auth-input" placeholder="Re-enter password" required minlength="6" autocomplete="new-password">
+              </div>
+            </div>
+            <div class="auth-form-group">
+              <label for="farmer-reg-phone" class="auth-label">Phone Number</label>
+              <input type="tel" id="farmer-reg-phone" class="auth-input" placeholder="e.g. 9876543210" required autocomplete="tel">
+            </div>
+            <div class="auth-form-row">
+              <div class="auth-form-group">
+                <label for="farmer-reg-location" class="auth-label">Farm Location</label>
+                <select id="farmer-reg-location" class="auth-input" required>
+                  <option value="">Select District</option>
+                  <option value="Salem">Salem</option>
+                  <option value="Erode">Erode</option>
+                  <option value="Dharmapuri">Dharmapuri</option>
+                  <option value="Puducherry">Puducherry</option>
+                  <option value="Villupuram">Villupuram</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="auth-form-group">
+                <label for="farmer-reg-crop" class="auth-label">Primary Crop Type</label>
+                <select id="farmer-reg-crop" class="auth-input" required>
+                  <option value="">Select Crop</option>
+                  <option value="Onions">Onions</option>
+                  <option value="Tomatoes">Tomatoes</option>
+                  <option value="Salem Turmeric">Salem Turmeric</option>
+                  <option value="Mangoes (Alphonso)">Mangoes (Alphonso)</option>
+                  <option value="Paddy Rice (Ponni)">Paddy Rice (Ponni)</option>
+                  <option value="Potatoes">Potatoes</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="auth-btn farmer-btn">Create Farmer Account</button>
+          </form>
+
+          <div class="auth-footer">
+            <p>Already registered? <a href="#/farmer-signin">Sign In</a></p>
+            <p style="margin-top: 12px;"><a href="#/" style="color: var(--text-muted); font-weight: normal;">← Back to Home</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== BUYER REGISTRATION VIEW ==================== -->
+    <section id="page-buyer-register" class="page-view">
+      <div class="signin-body buyer-bg-wrapper">
+        <div class="auth-card auth-card-wide">
+          <div class="auth-header">
+            <div class="auth-icon buyer-icon-bg">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="8" cy="21" r="1" />
+                <circle cx="19" cy="21" r="1" />
+                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+              </svg>
+            </div>
+            <h1 class="auth-title">Buyer Registration</h1>
+            <p class="auth-subtitle">Create a free account to source verified crops directly from farmers</p>
+          </div>
+
+          <form id="buyer-register-form" novalidate>
+            <div class="auth-form-group">
+              <label for="buyer-reg-name" class="auth-label">Full Name / Business Name</label>
+              <input type="text" id="buyer-reg-name" class="auth-input" placeholder="e.g. Ganesh Traders" required autocomplete="name">
+            </div>
+            <div class="auth-form-group">
+              <label for="buyer-reg-email" class="auth-label">Corporate Email</label>
+              <input type="email" id="buyer-reg-email" class="auth-input" placeholder="buyer@corporate.com" required autocomplete="username">
+            </div>
+            <div class="auth-form-row">
+              <div class="auth-form-group">
+                <label for="buyer-reg-password" class="auth-label">Password</label>
+                <input type="password" id="buyer-reg-password" class="auth-input" placeholder="Min. 6 characters" required minlength="6" autocomplete="new-password">
+              </div>
+              <div class="auth-form-group">
+                <label for="buyer-reg-confirm-password" class="auth-label">Confirm Password</label>
+                <input type="password" id="buyer-reg-confirm-password" class="auth-input" placeholder="Re-enter password" required minlength="6" autocomplete="new-password">
+              </div>
+            </div>
+            <div class="auth-form-group">
+              <label for="buyer-reg-phone" class="auth-label">Phone Number</label>
+              <input type="tel" id="buyer-reg-phone" class="auth-input" placeholder="e.g. 9876543210" required autocomplete="tel">
+            </div>
+            <div class="auth-form-group">
+              <label for="buyer-reg-address" class="auth-label">Business Address</label>
+              <textarea id="buyer-reg-address" class="auth-input" rows="3" placeholder="e.g. 12 MG Road, Coimbatore, Tamil Nadu" required></textarea>
+            </div>
+            <button type="submit" class="auth-btn buyer-btn">Create Buyer Account</button>
+          </form>
+
+          <div class="auth-footer">
+            <p>Already registered? <a href="#/buyer-signin">Sign In</a></p>
+            <p style="margin-top: 12px;"><a href="#/" style="color: var(--text-muted); font-weight: normal;">← Back to Home</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== FARMER SIGN-IN VIEW ==================== -->
+    <section id="page-farmer-signin" class="page-view">
+      <div class="signin-body farmer-bg-wrapper">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-icon farmer-icon-bg">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 10a6 6 0 0 0-6-6H3v2a6 6 0 0 0 6 6h3Z" />
+                <path d="M12 14a6 6 0 0 1 6-6h3v2a6 6 0 0 1-6 6h-3Z" />
+                <path d="M12 22V10" />
+              </svg>
+            </div>
+            <h1 class="auth-title">Farmer Sign-In</h1>
+            <p class="auth-subtitle">Manage your listings, connect directly with bulk buyers</p>
+          </div>
+          
+          <form id="farmer-login-form" novalidate>
+            <div class="auth-form-group">
+              <label for="farmer-email" class="auth-label">Registered Email</label>
+              <input type="email" id="farmer-email" class="auth-input" placeholder="farmer@village.com" required autocomplete="username">
+            </div>
+            <div class="auth-form-group">
+              <label for="farmer-password" class="auth-label">Password</label>
+              <input type="password" id="farmer-password" class="auth-input" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="auth-btn farmer-btn">Sign In as Farmer</button>
+          </form>
+          
+          <div class="auth-footer">
+            <p>Not registered? <a href="#/farmer-register">Create a Farmer Account</a></p>
+            <p style="margin-top: 12px;"><a href="#/" style="color: var(--text-muted); font-weight: normal;">← Back to Home</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== BUYER SIGN-IN VIEW ==================== -->
+    <section id="page-buyer-signin" class="page-view">
+      <div class="signin-body buyer-bg-wrapper">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="auth-icon buyer-icon-bg">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="8" cy="21" r="1" />
+                <circle cx="19" cy="21" r="1" />
+                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+              </svg>
+            </div>
+            <h1 class="auth-title">Buyer Sign-In</h1>
+            <p class="auth-subtitle">Source transparently, track shipments, contact sellers</p>
+          </div>
+          
+          <form id="buyer-login-form" novalidate>
+            <div class="auth-form-group">
+              <label for="buyer-email" class="auth-label">Corporate Email</label>
+              <input type="email" id="buyer-email" class="auth-input" placeholder="buyer@corporate.com" required autocomplete="username">
+            </div>
+            <div class="auth-form-group">
+              <label for="buyer-password" class="auth-label">Password</label>
+              <input type="password" id="buyer-password" class="auth-input" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="auth-btn buyer-btn">Sign In as Buyer</button>
+          </form>
+          
+          <div class="auth-footer">
+            <p>Not registered? <a href="#/buyer-register">Create a Buyer Account</a></p>
+            <p style="margin-top: 12px;"><a href="#/" style="color: var(--text-muted); font-weight: normal;">← Back to Home</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- Global Footer -->
@@ -952,6 +1209,8 @@
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
 
+  <!-- Supabase Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Application Logic -->
   <script src="app.js"></script>
 </body>
