@@ -88,11 +88,14 @@ document.addEventListener('DOMContentLoaded', () => {
       quantityDisplay: "1,200 Kg",
       price: "₹140 - ₹160 / Kg",
       location: "Salem",
+      address: "24, Kovil Street, Omalur, Salem",
       description: "[FALLBACK DATA] GI-Tagged premium quality Salem turmeric. Sun-dried and polished. Low moisture content, rich yellow curcumin (5.2%).",
       rating: "4.9",
       ratingCount: 14,
       verified: true,
       phone: "+919845011111",
+      altPhone: "+919845011112",
+      email: "selvam.turmeric@example.com",
       image: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png"
     },
     {
@@ -104,11 +107,14 @@ document.addEventListener('DOMContentLoaded', () => {
       quantityDisplay: "3.5 Tonnes",
       price: "₹24 - ₹28 / Kg",
       location: "Erode",
+      address: "7, Periyar Nagar, Gobichettipalayam, Erode",
       description: "[FALLBACK DATA] Bellary Red onions. Well-cured, double-skin quality. Size 55mm+. Harvested last week, stored in ventilated cold structures.",
       rating: "4.8",
       ratingCount: 22,
       verified: true,
       phone: "+919845022222",
+      altPhone: "",
+      email: "gomathi.farms@example.com",
       image: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-2.png"
     }
   ];
@@ -140,6 +146,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalCropName = document.getElementById('modal-crop-name');
   const modalQuantity = document.getElementById('modal-quantity');
   const modalPrice = document.getElementById('modal-price');
+  const modalAddress = document.getElementById('modal-address');
+  const modalAltPhone = document.getElementById('modal-alt-phone');
+  const modalEmail = document.getElementById('modal-email');
   const modalCallBtn = document.getElementById('modal-call-btn');
   const modalWaBtn = document.getElementById('modal-wa-btn');
 
@@ -310,6 +319,24 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'Not available';
   }
 
+  function getAddress(item) {
+    const candidates = [item.address, item.village, item.fullAddress];
+    const found = candidates.find(v => !isEmpty(v));
+    return found || 'Not available';
+  }
+
+  function getAltPhone(item) {
+    const candidates = [item.altPhone, item.alt_phone, item.alternatePhone];
+    const found = candidates.find(v => !isEmpty(v));
+    return found || 'Not available';
+  }
+
+  function getEmail(item) {
+    const candidates = [item.email];
+    const found = candidates.find(v => !isEmpty(v));
+    return found || 'Not available';
+  }
+
   // ==================== RENDER DIRECTORY CARDS ====================
   function renderDirectory(dataList) {
     directoryGrid.innerHTML = '';
@@ -414,12 +441,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const farmerName = getFarmerName(targetListing);
     const availabilityText = getAvailability(targetListing);
+    const addressText = getAddress(targetListing);
+    const altPhoneText = getAltPhone(targetListing);
+    const emailText = getEmail(targetListing);
 
     modalFarmerName.textContent = farmerName;
     modalFarmerLocation.textContent = `${targetListing.location} District, Tamil Nadu`;
     modalCropName.textContent = targetListing.crop;
     modalQuantity.textContent = availabilityText;
     modalPrice.textContent = targetListing.price;
+    modalAddress.textContent = addressText;
+    modalAltPhone.textContent = altPhoneText;
+    modalEmail.textContent = emailText;
     
     const verificationLabel = contactModal.querySelector('#modal-verification');
     if (targetListing.verified) {
@@ -479,10 +512,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const name = document.getElementById('sim-farmer-name').value;
       const phone = document.getElementById('sim-phone').value;
+      const altPhoneInput = document.getElementById('sim-alt-phone').value;
+      const email = document.getElementById('sim-email').value;
       const crop = document.getElementById('sim-crop-name').value;
       const qtyInput = document.getElementById('sim-quantity').value;
       const price = document.getElementById('sim-price').value;
       const location = document.getElementById('sim-location').value;
+      const address = document.getElementById('sim-address').value;
       const desc = document.getElementById('sim-description').value || "Harvest quality checked, ready to load.";
 
       const parsedQty = parseFloat(qtyInput.replace(/[^0-9.]/g, '')) || 800;
@@ -506,8 +542,11 @@ document.addEventListener('DOMContentLoaded', () => {
         quantityDisplay: qtyInput,
         price: `${price} / Unit`,
         location: location,
+        address: address,
         description: desc,
         phone: phone.startsWith('+91') ? phone : `+91${phone}`,
+        altPhone: altPhoneInput ? (altPhoneInput.startsWith('+91') ? altPhoneInput : `+91${altPhoneInput}`) : '',
+        email: email,
         image: defaultCropImg
       };
 
