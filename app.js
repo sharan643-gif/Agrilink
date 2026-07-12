@@ -5,6 +5,75 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+  // ==================== THEME SYSTEM (Dark / Light Mode) ====================
+  // Theme is applied pre-paint by an inline script in <head>; this just wires
+  // up the toggle button, persists the choice, and keeps aria state in sync.
+  (function initThemeToggle() {
+    const root = document.documentElement;
+    const toggleBtn = document.getElementById('theme-toggle');
+    if (!toggleBtn) return;
+
+    const syncAria = () => {
+      const isDark = root.getAttribute('data-theme') === 'dark';
+      toggleBtn.setAttribute('aria-checked', String(isDark));
+    };
+    syncAria();
+
+    toggleBtn.addEventListener('click', () => {
+      const isDark = root.getAttribute('data-theme') === 'dark';
+      const next = isDark ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      syncAria();
+    });
+
+    // Follow system preference changes if the user hasn't chosen manually
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (localStorage.getItem('theme')) return; // respect explicit user choice
+        root.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+        syncAria();
+      });
+    }
+  })();
+
+  // ==================== 3D TILT DEPTH EFFECT ====================
+  // Adds a subtle pointer-tracked perspective tilt to cards (.directory-card,
+  // .auth-card) for a "3D glass" feel. Uses event delegation so it keeps
+  // working on dynamically-rendered listing cards. Skipped on touch devices
+  // and when the user prefers reduced motion (handled primarily via CSS,
+  // this JS also bails out early as a safety net).
+  (function initTiltEffect() {
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isTouchDevice = window.matchMedia && window.matchMedia('(hover: none)').matches;
+    if (prefersReducedMotion || isTouchDevice) return;
+
+    const TILT_SELECTOR = '.directory-card, .auth-card';
+    const MAX_TILT_DEG = 6;
+
+    document.addEventListener('mousemove', (e) => {
+      const card = e.target.closest ? e.target.closest(TILT_SELECTOR) : null;
+      if (!card) return;
+
+      const rect = card.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width;  // 0 -> 1
+      const py = (e.clientY - rect.top) / rect.height;   // 0 -> 1
+
+      const rotateY = (px - 0.5) * (MAX_TILT_DEG * 2);
+      const rotateX = (0.5 - py) * (MAX_TILT_DEG * 2);
+
+      card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      const card = e.target.closest ? e.target.closest(TILT_SELECTOR) : null;
+      if (!card) return;
+      // Only reset once the pointer actually leaves the card (not on inner element hops)
+      if (card.contains(e.relatedTarget)) return;
+      card.style.transform = '';
+    });
+  })();
+
   // ==================== STATE & BACKEND CONFIG ====================
   const API_BASE_URL = 'http://localhost:5000/api';
 
@@ -88,7 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
     '/buyers': 'page-buyers',
     '/how-it-works': 'page-how-it-works',
     '/about': 'page-about',
-    '/contact': 'page-contact'
+    '/contact': 'page-contact',
+    '/farmer-signin': 'page-farmer-signin',
+    '/buyer-signin': 'page-buyer-signin',
+    '/farmer-register': 'page-farmer-register',
+    '/buyer-register': 'page-buyer-register'
   };
 
   function handleNavigation() {
@@ -131,8 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Close Mobile Menu if open
-    navMenu.classList.remove('active');
-    mobileToggle.classList.remove('active');
+    if (navMenu) navMenu.classList.remove('active');
+    if (mobileToggle) mobileToggle.classList.remove('active');
   }
 
   window.addEventListener('hashchange', handleNavigation);
@@ -140,20 +213,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // ==================== HEADER SCROLL EFFECT ====================
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 40) {
-      header.classList.add('scrolled');
-    } else {
-      header.classList.remove('scrolled');
-    }
-  });
+  if (header) {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 40) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    });
+  }
 
 
   // ==================== MOBILE NAVIGATION ====================
-  mobileToggle.addEventListener('click', () => {
-    navMenu.classList.toggle('active');
-    mobileToggle.classList.toggle('active');
-  });
+  if (mobileToggle && navMenu) {
+    mobileToggle.addEventListener('click', () => {
+      navMenu.classList.toggle('active');
+      mobileToggle.classList.toggle('active');
+    });
+  }
 
 
   // ==================== DATABASE CONNECTIVITY (API FETCH) ====================
@@ -202,6 +279,37 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
+  // ==================== SAFE FIELD RESOLVERS ====================
+  // Listings can arrive from three different sources (MongoDB, Supabase via
+  // the backend's normalizeListing(), or the local FALLBACK_LISTINGS array),
+  // and each has historically used slightly different key names. These
+  // helpers pull the correct value from whichever key is actually present
+  // and guarantee we NEVER render "undefined"/"null" in the UI.
+
+  function isEmpty(value) {
+    return value === undefined || value === null || String(value).trim() === '';
+  }
+
+  function getFarmerName(item) {
+    const candidates = [item.farmerName, item.farmer_name, item.name];
+    const found = candidates.find(v => !isEmpty(v));
+    return found || 'Not available';
+  }
+
+  function getAvailability(item) {
+    // Prefer the pre-formatted display string (e.g. "1,200 Kg"); fall back
+    // to a raw numeric quantity/availability value; finally show a fallback.
+    const displayCandidates = [item.quantityDisplay, item.quantity_display, item.availabilityDisplay, item.availability];
+    const displayFound = displayCandidates.find(v => !isEmpty(v));
+    if (displayFound) return displayFound;
+
+    const numericCandidates = [item.quantity, item.availableQuantity, item.stock];
+    const numericFound = numericCandidates.find(v => !isEmpty(v));
+    if (numericFound) return `${numericFound} Kg`;
+
+    return 'Not available';
+  }
+
   // ==================== RENDER DIRECTORY CARDS ====================
   function renderDirectory(dataList) {
     directoryGrid.innerHTML = '';
@@ -241,6 +349,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // Support MongoDB _id (string) or local fallback number ID
       const targetId = item._id || item.id;
 
+      // Resolve once so both the card markup and the alt text stay in sync
+      const farmerName = getFarmerName(item);
+      const availabilityText = getAvailability(item);
+
       card.innerHTML = `
         <div class="card-image-box">
           <img src="${item.image}" alt="${item.crop} harvest" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/hero_bg.png';">
@@ -249,9 +361,9 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="card-content">
           <div class="card-farmer-info">
-            <img src="${item.avatar}" alt="${item.farmerName}" class="farmer-avatar" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png';">
+            <img src="${item.avatar}" alt="${farmerName}" class="farmer-avatar" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png';">
             <div class="farmer-name-details">
-              <h4>${item.farmerName}</h4>
+              <h4>${farmerName}</h4>
               <div class="farmer-rating">
                 ★ ${item.rating || '5.0'} <span>(${item.ratingCount || 0} deals)</span>
               </div>
@@ -262,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${item.description}</p>
           </div>
           <div class="card-meta-grid">
-            <div class="meta-item">Available Stock <span>${item.quantityDisplay}</span></div>
+            <div class="meta-item">Available Stock <span>${availabilityText}</span></div>
             <div class="meta-item">Location <span>${item.location}, TN</span></div>
           </div>
           <button class="btn btn-secondary card-btn contact-farmer-trigger" data-id="${targetId}">Contact Farmer</button>
@@ -299,10 +411,14 @@ document.addEventListener('DOMContentLoaded', () => {
       this.src = 'https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png';
     };
     modalFarmerAvatar.src = targetListing.avatar;
-    modalFarmerName.textContent = targetListing.farmerName;
+
+    const farmerName = getFarmerName(targetListing);
+    const availabilityText = getAvailability(targetListing);
+
+    modalFarmerName.textContent = farmerName;
     modalFarmerLocation.textContent = `${targetListing.location} District, Tamil Nadu`;
     modalCropName.textContent = targetListing.crop;
-    modalQuantity.textContent = targetListing.quantityDisplay;
+    modalQuantity.textContent = availabilityText;
     modalPrice.textContent = targetListing.price;
     
     const verificationLabel = contactModal.querySelector('#modal-verification');
@@ -317,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalCallBtn.href = `tel:${targetListing.phone}`;
     
     const waText = encodeURIComponent(
-      `Hello ${targetListing.farmerName}, I saw your listing for ${targetListing.crop} (${targetListing.quantityDisplay}) on the Farmer-Direct Marketplace portal. Is the stock still available? I would like to negotiate details.`
+      `Hello ${farmerName}, I saw your listing for ${targetListing.crop} (${availabilityText}) on the Farmer-Direct Marketplace portal. Is the stock still available? I would like to negotiate details.`
     );
     modalWaBtn.href = `https://wa.me/${targetListing.phone.replace('+', '')}?text=${waText}`;
 
@@ -468,6 +584,416 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('API error, simulating registration locally:', error.message);
         showToast(`Registered successfully (Local Sim)! Welcome, ${name}.`);
         pilotRegistrationForm.reset();
+      }
+    });
+  }
+
+  // ==================== SUPABASE AUTHENTICATION SYSTEM ====================
+  // Check if we are on the farmer sign-in page or buyer sign-in page
+  const farmerLoginForm = document.getElementById('farmer-login-form');
+  const buyerLoginForm = document.getElementById('buyer-login-form');
+
+  // Supabase Credentials (configured in .env on server, here as defaults)
+  const SUPABASE_URL = "https://ofbwcyncwuqevbmlmafa.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mYndjeW5jd3VxZXZibWxtYWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4Mjc3OTAsImV4cCI6MjA5OTQwMzc5MH0.MKKH3du-vv9X2n4as1VahfGyUgNc1Nlks60sDoWlGTc";
+
+  let supabaseClient = null;
+  if (typeof supabase !== 'undefined') {
+    // Loaded via Supabase CDN in index.html
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+
+  // Helper to show form specific inline status alerts
+  function showAuthMessage(formContainer, text, type = 'error') {
+    let alertDiv = formContainer.querySelector('.auth-alert');
+    if (!alertDiv) {
+      alertDiv = document.createElement('div');
+      alertDiv.className = 'auth-alert';
+      formContainer.prepend(alertDiv);
+    }
+    alertDiv.className = `auth-alert alert-${type}`;
+    alertDiv.textContent = text;
+    
+    // Add icon based on type
+    const errorIcon = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24" style="margin-right:4px; display:inline-block; vertical-align:middle;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
+    const successIcon = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24" style="margin-right:4px; display:inline-block; vertical-align:middle;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>`;
+    alertDiv.innerHTML = `${type === 'error' ? errorIcon : successIcon} <span>${text}</span>`;
+    
+    // Smooth transition fade-in
+    alertDiv.style.opacity = '0';
+    alertDiv.style.transform = 'translateY(-10px)';
+    alertDiv.style.transition = 'all 0.3s ease';
+    
+    setTimeout(() => {
+      alertDiv.style.opacity = '1';
+      alertDiv.style.transform = 'translateY(0)';
+    }, 50);
+  }
+
+  // Handle Farmer Login Form Submission
+  if (farmerLoginForm) {
+    farmerLoginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('farmer-email').value.trim();
+      const password = document.getElementById('farmer-password').value;
+      const submitBtn = farmerLoginForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+      
+      // Basic client-side validation
+      if (!email || !password) {
+        showAuthMessage(farmerLoginForm, 'Please fill in all fields.', 'error');
+        return;
+      }
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="spinner"></span> Signing in...`;
+
+        if (!supabaseClient) {
+          throw new Error('Supabase client was not initialized properly.');
+        }
+
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        showAuthMessage(farmerLoginForm, 'Sign-in successful! Redirecting to dashboard...', 'success');
+        
+        // Save local session state
+        localStorage.setItem('auth_role', 'farmer');
+        localStorage.setItem('auth_session', JSON.stringify(data.session));
+
+        setTimeout(() => {
+          window.location.hash = '#/farmers';
+        }, 1500);
+
+      } catch (err) {
+        console.error('Farmer auth error:', err.message);
+        showAuthMessage(farmerLoginForm, err.message || 'Verification failed. Please check credentials.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    });
+  }
+
+  // Handle Buyer Login Form Submission
+  if (buyerLoginForm) {
+    buyerLoginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('buyer-email').value.trim();
+      const password = document.getElementById('buyer-password').value;
+      const submitBtn = buyerLoginForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+      
+      // Basic client-side validation
+      if (!email || !password) {
+        showAuthMessage(buyerLoginForm, 'Please fill in all fields.', 'error');
+        return;
+      }
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="spinner"></span> Signing in...`;
+
+        if (!supabaseClient) {
+          throw new Error('Supabase client was not initialized properly.');
+        }
+
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        showAuthMessage(buyerLoginForm, 'Sign-in successful! Redirecting to directory...', 'success');
+        
+        // Save local session state
+        localStorage.setItem('auth_role', 'buyer');
+        localStorage.setItem('auth_session', JSON.stringify(data.session));
+
+        setTimeout(() => {
+          window.location.hash = '#/buyers';
+        }, 1500);
+
+      } catch (err) {
+        console.error('Buyer auth error:', err.message);
+        showAuthMessage(buyerLoginForm, err.message || 'Verification failed. Please check credentials.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    });
+  }
+
+
+  // ==================== SUPABASE REGISTRATION (SIGN-UP) SYSTEM ====================
+  // These handlers power the /farmer-register and /buyer-register pages.
+  // Flow for both roles: 1) supabaseClient.auth.signUp() creates the auth.users entry
+  //                       2) once we have a session, we insert a matching profile row
+  //                          directly into a public table ('farmers' or 'buyers')
+  //                          keyed by the new user's id — no DB trigger required
+  //                       3) depending on whether email confirmation is required,
+  //                          we either log the person straight in or send them to Sign-In
+  //
+  // IMPORTANT: "Confirm email" must be turned OFF in Supabase
+  // (Authentication > Sign In / Providers > Email) for this pilot app.
+  // With it on, every signup sends a confirmation email, and Supabase's
+  // shared/default email service allows only ~2 emails/hour — which is
+  // what causes the "email rate limit exceeded" error on Create Account.
+  // Turning it off also means data.session is always returned immediately,
+  // so the profile insert below always runs.
+  //
+  // Run supabase_setup.sql (provided alongside this file) once in the
+  // Supabase SQL editor to create these tables before testing sign-up:
+  //
+  //   create table public.farmers (
+  //     id uuid primary key references auth.users(id) on delete cascade,
+  //     name text not null,
+  //     email text not null,
+  //     phone text not null,
+  //     location text not null,
+  //     crop_type text not null,
+  //     created_at timestamp with time zone default now()
+  //   );
+  //
+  //   create table public.buyers (
+  //     id uuid primary key references auth.users(id) on delete cascade,
+  //     name text not null,
+  //     email text not null,
+  //     phone text not null,
+  //     address text not null,
+  //     created_at timestamp with time zone default now()
+  //   );
+  //
+  // Remember to enable Row Level Security + an "insert own row" policy
+  // (auth.uid() = id) on both tables so the anon key can only write the
+  // signed-up user's own profile.
+
+  const farmerRegisterForm = document.getElementById('farmer-register-form');
+  const buyerRegisterForm = document.getElementById('buyer-register-form');
+
+  // Shared helper: basic password validation used by both registration forms
+  function validatePasswords(form, password, confirmPassword) {
+    if (password.length < 6) {
+      showAuthMessage(form, 'Password must be at least 6 characters long.', 'error');
+      return false;
+    }
+    if (password !== confirmPassword) {
+      showAuthMessage(form, 'Passwords do not match. Please re-check.', 'error');
+      return false;
+    }
+    return true;
+  }
+
+  // Handle Farmer Registration Form Submission
+  if (farmerRegisterForm) {
+    farmerRegisterForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Collect form field values
+      const name = document.getElementById('farmer-reg-name').value.trim();
+      const email = document.getElementById('farmer-reg-email').value.trim();
+      const password = document.getElementById('farmer-reg-password').value;
+      const confirmPassword = document.getElementById('farmer-reg-confirm-password').value;
+      const phone = document.getElementById('farmer-reg-phone').value.trim();
+      const location = document.getElementById('farmer-reg-location').value;
+      const cropType = document.getElementById('farmer-reg-crop').value;
+
+      const submitBtn = farmerRegisterForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+
+      // Basic client-side validation
+      if (!name || !email || !password || !confirmPassword || !phone || !location || !cropType) {
+        showAuthMessage(farmerRegisterForm, 'Please fill in all fields.', 'error');
+        return;
+      }
+      if (!validatePasswords(farmerRegisterForm, password, confirmPassword)) {
+        return;
+      }
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="spinner"></span> Creating account...`;
+
+        if (!supabaseClient) {
+          throw new Error('Supabase client was not initialized properly.');
+        }
+
+        // Step 1: Create the authentication user.
+        const { data, error } = await supabaseClient.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            data: {
+              role: 'farmer',
+              name: name,
+              phone: phone,
+              location: location,
+              crop_type: cropType
+            }
+          }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        // Step 2: Write the profile row directly into public.farmers.
+        // We no longer depend on a DB trigger — we insert explicitly here
+        // so the data is guaranteed to be saved as soon as we have a session.
+        if (data.session && data.user) {
+          const { error: profileError } = await supabaseClient
+            .from('farmers')
+            .insert([{
+              id: data.user.id,
+              name: name,
+              email: email,
+              phone: phone,
+              location: location,
+              crop_type: cropType
+            }]);
+
+          if (profileError) {
+            throw profileError;
+          }
+        }
+
+        farmerRegisterForm.reset();
+
+        if (data.session) {
+          // Email confirmation is disabled on this Supabase project — user is logged in immediately
+          showAuthMessage(farmerRegisterForm, 'Account created! Redirecting to your dashboard...', 'success');
+          localStorage.setItem('auth_role', 'farmer');
+          localStorage.setItem('auth_session', JSON.stringify(data.session));
+          setTimeout(() => {
+            window.location.hash = '#/farmers';
+          }, 1800);
+        } else {
+          // Email confirmation is still required on this Supabase project.
+          // Turn off "Confirm email" in Supabase (Authentication > Sign In / Providers > Email)
+          // so accounts activate immediately and the profile insert above always runs.
+          showAuthMessage(farmerRegisterForm, 'Account created! Please check your email to confirm, then sign in.', 'success');
+          setTimeout(() => {
+            window.location.hash = '#/farmer-signin';
+          }, 2200);
+        }
+
+      } catch (err) {
+        console.error('Farmer registration error:', err.message);
+        showAuthMessage(farmerRegisterForm, err.message || 'Registration failed. Please try again.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    });
+  }
+
+  // Handle Buyer Registration Form Submission
+  if (buyerRegisterForm) {
+    buyerRegisterForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Collect form field values
+      const name = document.getElementById('buyer-reg-name').value.trim();
+      const email = document.getElementById('buyer-reg-email').value.trim();
+      const password = document.getElementById('buyer-reg-password').value;
+      const confirmPassword = document.getElementById('buyer-reg-confirm-password').value;
+      const phone = document.getElementById('buyer-reg-phone').value.trim();
+      const address = document.getElementById('buyer-reg-address').value.trim();
+
+      const submitBtn = buyerRegisterForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+
+      // Basic client-side validation
+      if (!name || !email || !password || !confirmPassword || !phone || !address) {
+        showAuthMessage(buyerRegisterForm, 'Please fill in all fields.', 'error');
+        return;
+      }
+      if (!validatePasswords(buyerRegisterForm, password, confirmPassword)) {
+        return;
+      }
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="spinner"></span> Creating account...`;
+
+        if (!supabaseClient) {
+          throw new Error('Supabase client was not initialized properly.');
+        }
+
+        // Step 1: Create the authentication user.
+        const { data, error } = await supabaseClient.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            data: {
+              role: 'buyer',
+              name: name,
+              phone: phone,
+              address: address
+            }
+          }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        // Step 2: Write the profile row directly into public.buyers.
+        // We no longer depend on a DB trigger — we insert explicitly here
+        // so the data is guaranteed to be saved as soon as we have a session.
+        if (data.session && data.user) {
+          const { error: profileError } = await supabaseClient
+            .from('buyers')
+            .insert([{
+              id: data.user.id,
+              name: name,
+              email: email,
+              phone: phone,
+              address: address
+            }]);
+
+          if (profileError) {
+            throw profileError;
+          }
+        }
+
+        buyerRegisterForm.reset();
+
+        if (data.session) {
+          showAuthMessage(buyerRegisterForm, 'Account created! Redirecting to the directory...', 'success');
+          localStorage.setItem('auth_role', 'buyer');
+          localStorage.setItem('auth_session', JSON.stringify(data.session));
+          setTimeout(() => {
+            window.location.hash = '#/buyers';
+          }, 1800);
+        } else {
+          // Email confirmation is still required on this Supabase project.
+          // Turn off "Confirm email" in Supabase (Authentication > Sign In / Providers > Email)
+          // so accounts activate immediately and the profile insert above always runs.
+          showAuthMessage(buyerRegisterForm, 'Account created! Please check your email to confirm, then sign in.', 'success');
+          setTimeout(() => {
+            window.location.hash = '#/buyer-signin';
+          }, 2200);
+        }
+
+      } catch (err) {
+        console.error('Buyer registration error:', err.message);
+        showAuthMessage(buyerRegisterForm, err.message || 'Registration failed. Please try again.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
       }
     });
   }
