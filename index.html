@@ -46,19 +46,19 @@
         <!-- Navigation Links (segmented glass pill on desktop / slide-down tab sheet on mobile) -->
         <nav class="nav-scroll" id="nav-scroll">
           <ul class="nav-menu" id="nav-menu">
-            <li class="nav-item nav-item--icon">
+            <li class="nav-item nav-item--icon mobile-hide-in-sheet">
               <a href="#/" class="nav-link active">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>
                 <span>Home</span>
               </a>
             </li>
-            <li class="nav-item nav-item--icon">
+            <li class="nav-item nav-item--icon mobile-hide-in-sheet">
               <a href="#/farmers" class="nav-link">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V10"/><path d="M12 21a8 8 0 0 1-8-8c4.4 0 8 1.5 8 8Z"/><path d="M12 15a8 8 0 0 1 8-8c0 4.5-3.6 8-8 8Z"/></svg>
                 <span>For Farmers</span>
               </a>
             </li>
-            <li class="nav-item nav-item--icon">
+            <li class="nav-item nav-item--icon mobile-hide-in-sheet">
               <a href="#/buyers" class="nav-link">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
                 <span>For Buyers</span>
@@ -76,8 +76,29 @@
                 <span>About</span>
               </a>
             </li>
+            <li class="nav-item nav-item--icon mobile-hide-in-sheet">
+              <a href="#/profile" class="nav-link" id="nav-profile-link">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg>
+                <span>Profile</span>
+              </a>
+            </li>
 
             <li class="nav-divider" aria-hidden="true"></li>
+
+            <!-- Dark mode lives only in the hamburger sheet on mobile — the
+                 header switch (below) is desktop-only there. -->
+            <li class="nav-item nav-item--toggle">
+              <span class="nav-toggle-row-label">
+                <svg class="nav-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>
+                <span>Dark Mode</span>
+              </span>
+              <button class="theme-toggle" id="theme-toggle-menu" type="button" role="switch" aria-checked="false" aria-label="Toggle dark mode">
+                <span class="theme-toggle-thumb">
+                  <svg class="icon-sun" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0-15a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1ZM4.22 5.64a1 1 0 0 1 1.42 0l.7.71a1 1 0 1 1-1.42 1.41l-.7-.7a1 1 0 0 1 0-1.42Zm12.44 12.44a1 1 0 0 1 1.42 0l.7.71a1 1 0 0 1-1.42 1.41l-.7-.7a1 1 0 0 1 0-1.42ZM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1Zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1ZM4.22 18.36a1 1 0 0 1 0-1.42l.7-.7a1 1 0 1 1 1.42 1.41l-.7.7a1 1 0 0 1-1.42 0ZM16.66 5.64a1 1 0 0 1 0 1.42l-.7.7a1 1 0 1 1-1.42-1.41l.7-.71a1 1 0 0 1 1.42 0Z"/></svg>
+                  <svg class="icon-moon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>
+                </span>
+              </button>
+            </li>
 
             <li class="nav-item nav-item--text"><a href="#/farmer-signin" class="nav-link"><span>Farmer Login</span></a></li>
             <li class="nav-item nav-item--text"><a href="#/buyer-signin" class="nav-link"><span>Buyer Login</span></a></li>
@@ -85,8 +106,9 @@
           </ul>
         </nav>
 
-        <!-- Dark / Light Mode Toggle -->
-        <button class="theme-toggle" id="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark mode">
+        <!-- Dark / Light Mode Toggle (desktop header only — on mobile this
+             switch moves into the hamburger sheet, see #theme-toggle-menu) -->
+        <button class="theme-toggle theme-toggle--header" id="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark mode">
           <span class="theme-toggle-thumb">
             <svg class="icon-sun" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0-15a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1ZM4.22 5.64a1 1 0 0 1 1.42 0l.7.71a1 1 0 1 1-1.42 1.41l-.7-.7a1 1 0 0 1 0-1.42Zm12.44 12.44a1 1 0 0 1 1.42 0l.7.71a1 1 0 0 1-1.42 1.41l-.7-.7a1 1 0 0 1 0-1.42ZM1 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1Zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1ZM4.22 18.36a1 1 0 0 1 0-1.42l.7-.7a1 1 0 1 1 1.42 1.41l-.7.7a1 1 0 0 1-1.42 0ZM16.66 5.64a1 1 0 0 1 0 1.42l-.7.7a1 1 0 1 1-1.42-1.41l.7-.71a1 1 0 0 1 1.42 0Z"/></svg>
             <svg class="icon-moon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"/></svg>
@@ -102,6 +124,37 @@
       </div>
     </div>
   </header>
+
+  <!-- Dim overlay shown behind the mobile nav sheet so page content underneath doesn't bleed through -->
+  <div class="mobile-menu-backdrop" id="mobile-menu-backdrop"></div>
+
+  <!-- Floating "iOS 27" liquid-glass tab bar — mobile only. Mirrors the
+       Home / For Farmers / For Buyers / Profile links that live in the
+       desktop pill nav, as quick-access icons pinned to the bottom of
+       the screen. -->
+  <nav class="mobile-tabbar" id="mobile-tabbar" aria-label="Primary mobile navigation">
+    <div class="tabbar-glow" aria-hidden="true"></div>
+    <div class="mobile-tabbar-glass">
+      <div class="tabbar-sheen" aria-hidden="true"></div>
+      <div class="tabbar-indicator" id="tabbar-indicator" aria-hidden="true"></div>
+      <a href="#/" class="nav-link tabbar-link active">
+        <svg class="tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></svg>
+        <span>Home</span>
+      </a>
+      <a href="#/farmers" class="nav-link tabbar-link">
+        <svg class="tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V10"/><path d="M12 21a8 8 0 0 1-8-8c4.4 0 8 1.5 8 8Z"/><path d="M12 15a8 8 0 0 1 8-8c0 4.5-3.6 8-8 8Z"/></svg>
+        <span>Farmers</span>
+      </a>
+      <a href="#/buyers" class="nav-link tabbar-link">
+        <svg class="tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+        <span>Buyers</span>
+      </a>
+      <a href="#/profile" class="nav-link tabbar-link">
+        <svg class="tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg>
+        <span>Profile</span>
+      </a>
+    </div>
+  </nav>
 
   <!-- Page Content Swapped dynamically via app.js -->
   <main>
@@ -399,28 +452,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- Demo Card Showcase -->
-            <div>
-              <div class="demo-crop-card">
-                <div class="demo-crop-img" style="background-image: url('assets/images/farmer-1.png');"></div>
-                <div class="demo-crop-body">
-                  <div class="demo-crop-meta">
-                    <span class="demo-crop-tag">Salem Turmeric</span>
-                    <span class="demo-crop-loc">Salem, TN (Within 12km)</span>
-                  </div>
-                  <h3 class="demo-crop-title">Thiru R. Selvam</h3>
-                  <p style="font-size:0.9rem; margin-bottom:1rem;">Organic GI-tagged Salem Turmeric. Fully sorted and polished. Grade-A quality.</p>
-                  
-                  <div class="demo-crop-stats">
-                    <div class="demo-stat">Available Quantity <span>1,200 Kg</span></div>
-                    <div class="demo-stat">Price Range <span>₹140 - ₹160 / Kg</span></div>
-                    <div class="demo-stat">Harvest Status <span>Ready to Dispatch</span></div>
-                    <div class="demo-stat">Land Registry <span>Verified Farmer ✓</span></div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -458,78 +489,6 @@
               <h3>Get Direct Calls</h3>
               <p>Receive calls or WhatsApp inquiries from bulk buyers. Ship and collect payment direct.</p>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Simulation Form: Add Produce -->
-      <div class="section-padding">
-        <div class="container" style="max-width:750px;">
-          <div class="contact-card" style="border-left: 6px solid var(--primary);">
-            <h2 style="font-family:var(--font-serif); font-size:1.85rem; margin-bottom:0.5rem; text-align:center;">Simulate a Produce Listing</h2>
-            <p style="text-align:center; margin-bottom:2rem; font-size:0.95rem;">Test our platform by listing simulated crops. It will immediately appear in the live directory search on the <strong>For Buyers</strong> page!</p>
-            
-            <form id="simulate-listing-form">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="sim-farmer-name">Farmer / FPO Name *</label>
-                  <input type="text" id="sim-farmer-name" placeholder="e.g. Ramesh Kumar / Salem FPO" required>
-                </div>
-                <div class="form-group">
-                  <label for="sim-phone">Phone Number (For OTP simulation) *</label>
-                  <input type="tel" id="sim-phone" placeholder="e.g. 9876543210" required>
-                </div>
-                <div class="form-group">
-                  <label for="sim-alt-phone">Alternate Phone Number</label>
-                  <input type="tel" id="sim-alt-phone" placeholder="e.g. 9876500000 (optional)">
-                </div>
-                <div class="form-group">
-                  <label for="sim-email">Email Address</label>
-                  <input type="email" id="sim-email" placeholder="e.g. ramesh@example.com (optional)">
-                </div>
-                <div class="form-group">
-                  <label for="sim-crop-name">Crop Name *</label>
-                  <select id="sim-crop-name" required>
-                    <option value="">Select Crop</option>
-                    <option value="Onions">Onions</option>
-                    <option value="Tomatoes">Tomatoes</option>
-                    <option value="Salem Turmeric">Salem Turmeric</option>
-                    <option value="Mangoes (Alphonso)">Mangoes (Alphonso)</option>
-                    <option value="Paddy Rice (Ponni)">Paddy Rice (Ponni)</option>
-                    <option value="Potatoes">Potatoes</option>
-                    <option value="Green Chillies">Green Chillies</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="sim-quantity">Quantity Available *</label>
-                  <input type="text" id="sim-quantity" placeholder="e.g. 800 Kg or 2 Tonnes" required>
-                </div>
-                <div class="form-group">
-                  <label for="sim-price">Price Range (per Kg/Quintal) *</label>
-                  <input type="text" id="sim-price" placeholder="e.g. ₹35 - ₹40" required>
-                </div>
-                <div class="form-group">
-                  <label for="sim-location">District / Location *</label>
-                  <select id="sim-location" required>
-                    <option value="">Select Location</option>
-                    <option value="Salem">Salem</option>
-                    <option value="Erode">Erode</option>
-                    <option value="Dharmapuri">Dharmapuri</option>
-                    <option value="Puducherry">Puducherry</option>
-                    <option value="Villupuram">Villupuram</option>
-                  </select>
-                </div>
-                <div class="form-group full-width">
-                  <label for="sim-address">Village / Full Address *</label>
-                  <input type="text" id="sim-address" placeholder="e.g. 12, Agraharam Street, Omalur, Salem" required>
-                </div>
-                <div class="form-group full-width">
-                  <label for="sim-description">Quality Description / Details</label>
-                  <textarea id="sim-description" rows="3" placeholder="e.g. Grade-A sorted, sun-dried, grown using organic compost. Ready for loading."></textarea>
-                </div>
-              </div>
-              <button type="submit" class="btn btn-primary" style="margin-top:2rem; width:100%;">Create Listing Preview</button>
-            </form>
           </div>
         </div>
       </div>
@@ -785,6 +744,87 @@
       </div>
     </section>
 
+    <!-- ==================== PROFILE PAGE VIEW ==================== -->
+    <section id="page-profile" class="page-view">
+      <div class="container section-padding">
+
+        <!-- Signed-in state -->
+        <div id="profile-signed-in" class="profile-wrap" style="display:none;">
+          <div class="auth-card auth-card-wide profile-card">
+            <div class="profile-card-header">
+              <div class="profile-avatar" id="profile-avatar-initial">F</div>
+              <div>
+                <h1 class="auth-title" id="profile-name" style="margin-bottom:0.25rem;">—</h1>
+                <span class="profile-role-badge" id="profile-role-badge">Farmer</span>
+              </div>
+            </div>
+
+            <div class="profile-info-grid">
+              <div class="contact-method">
+                <div class="contact-method-icon">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4C2.9 4 2.01 4.9 2.01 6L2 18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4ZM20 8L12 13L4 8V6L12 11L20 6V8Z"/></svg>
+                </div>
+                <div class="contact-method-detail">
+                  <h4>Email</h4>
+                  <p id="profile-email">—</p>
+                </div>
+              </div>
+              <div class="contact-method">
+                <div class="contact-method-icon">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 15.5C18.8 15.5 17.5 15.3 16.4 14.9C16 14.8 15.6 14.9 15.3 15.2L13.1 17.4C10.3 15.9 8 13.7 6.5 10.9L8.7 8.7C9 8.4 9.1 8 9 7.6C8.6 6.5 8.4 5.2 8.4 4C8.4 3.4 8 3 7.4 3H4C3.4 3 3 3.4 3 4C3 13.4 10.6 21 20 21C20.6 21 21 20.6 21 20V16.6C21 16 20.6 15.5 20 15.5Z"/></svg>
+                </div>
+                <div class="contact-method-detail">
+                  <h4>Phone</h4>
+                  <p id="profile-phone">—</p>
+                </div>
+              </div>
+              <div class="contact-method">
+                <div class="contact-method-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                <div class="contact-method-detail">
+                  <h4>Location</h4>
+                  <p id="profile-location">—</p>
+                </div>
+              </div>
+              <div class="contact-method" id="profile-extra-row">
+                <div class="contact-method-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V10"/><path d="M12 21a8 8 0 0 1-8-8c4.4 0 8 1.5 8 8Z"/><path d="M12 15a8 8 0 0 1 8-8c0 4.5-3.6 8-8 8Z"/></svg>
+                </div>
+                <div class="contact-method-detail">
+                  <h4 id="profile-extra-label">Primary Crop</h4>
+                  <p id="profile-extra-value">—</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="auth-footer" style="display:flex; gap:12px; margin-top:1.5rem;">
+              <button type="button" class="btn btn-primary" id="profile-dashboard-btn" style="flex:1;">Go to Dashboard</button>
+              <button type="button" class="btn btn-secondary" id="profile-signout-btn" style="flex:1;">Sign Out</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Signed-out state -->
+        <div id="profile-signed-out" class="profile-wrap" style="display:none;">
+          <div class="auth-card" style="margin:0 auto; text-align:center;">
+            <div class="auth-header">
+              <div class="auth-icon farmer-icon-bg" style="margin:0 auto;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg>
+              </div>
+              <h1 class="auth-title">You're Not Signed In</h1>
+              <p class="auth-subtitle">Sign in to view your personal information, listings, and sourcing activity.</p>
+            </div>
+            <div class="auth-footer" style="display:flex; gap:12px; flex-direction:column;">
+              <a href="#/farmer-signin" class="auth-btn farmer-btn" style="text-decoration:none; text-align:center;">Farmer Login</a>
+              <a href="#/buyer-signin" class="auth-btn buyer-btn" style="text-decoration:none; text-align:center;">Buyer Login</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
     <!-- ==================== CONTACT PAGE VIEW ==================== -->
     <section id="page-contact" class="page-view">
       <!-- Page Banner -->
@@ -1030,6 +1070,13 @@
     <!-- ==================== FARMER SIGN-IN VIEW ==================== -->
     <section id="page-farmer-signin" class="page-view">
       <div class="signin-body farmer-bg-wrapper">
+        <div class="bg-mesh" aria-hidden="true"></div>
+        <div class="bg-orb bg-orb-1" aria-hidden="true"></div>
+        <div class="bg-orb bg-orb-2" aria-hidden="true"></div>
+        <div class="bg-orb bg-orb-3" aria-hidden="true"></div>
+        <div class="bg-grid" aria-hidden="true"></div>
+        <div class="bg-sheen" aria-hidden="true"></div>
+        <div class="bg-grain" aria-hidden="true"></div>
         <div class="auth-card">
           <div class="auth-header">
             <div class="auth-icon farmer-icon-bg">
@@ -1066,6 +1113,13 @@
     <!-- ==================== BUYER SIGN-IN VIEW ==================== -->
     <section id="page-buyer-signin" class="page-view">
       <div class="signin-body buyer-bg-wrapper">
+        <div class="bg-mesh" aria-hidden="true"></div>
+        <div class="bg-orb bg-orb-1" aria-hidden="true"></div>
+        <div class="bg-orb bg-orb-2" aria-hidden="true"></div>
+        <div class="bg-orb bg-orb-3" aria-hidden="true"></div>
+        <div class="bg-grid" aria-hidden="true"></div>
+        <div class="bg-sheen" aria-hidden="true"></div>
+        <div class="bg-grain" aria-hidden="true"></div>
         <div class="auth-card">
           <div class="auth-header">
             <div class="auth-icon buyer-icon-bg">
@@ -1134,7 +1188,6 @@
         <ul>
           <li><a href="#/farmers">Benefits Checklist</a></li>
           <li><a href="#/farmers">Onboarding Steps</a></li>
-          <li><a href="#/farmers">Simulate Listing</a></li>
           <li><a href="#/contact">FPO Partnerships</a></li>
         </ul>
       </div>
