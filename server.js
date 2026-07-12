@@ -53,11 +53,14 @@ function normalizeListing(row) {
     quantityDisplay,
     price: row.price,
     location: row.location,
+    address: row.address ?? row.village ?? '',
     description: row.description,
     rating: row.rating,
     ratingCount: row.rating_count ?? row.ratingCount ?? 0,
     verified: row.verified,
     phone: row.phone,
+    altPhone: row.alt_phone ?? row.altPhone ?? '',
+    email: row.email ?? '',
     image: row.image,
     createdAt: row.created_at ?? row.createdAt
   };
@@ -81,7 +84,7 @@ mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 2000 })
 
 // ==================== SCHEMAS & MODELS ====================
 
-// Listing Schema (Produce catalog)
+// Listing Schema (Produce catalog + full farmer profile)
 const ListingSchema = new mongoose.Schema({
   farmerName: { type: String, required: true },
   avatar: { type: String, default: 'assets/images/farmer-1.png' },
@@ -89,12 +92,15 @@ const ListingSchema = new mongoose.Schema({
   quantity: { type: Number, required: true }, // For numeric volume filtering
   quantityDisplay: { type: String, required: true }, // e.g. "1,200 Kg"
   price: { type: String, required: true }, // e.g. "₹140 - ₹160 / Kg"
-  location: { type: String, required: true }, // e.g. "Salem", "Erode"
+  location: { type: String, required: true }, // e.g. "Salem", "Erode" (district)
+  address: { type: String, default: '' }, // Full village / street address
   description: { type: String, default: '' },
   rating: { type: String, default: '5.0' },
   ratingCount: { type: Number, default: 0 },
   verified: { type: Boolean, default: false },
   phone: { type: String, required: true },
+  altPhone: { type: String, default: '' }, // Alternate contact number
+  email: { type: String, default: '' },
   image: { type: String, default: 'assets/images/hero_bg.png' },
   createdAt: { type: Date, default: Date.now }
 });
@@ -209,8 +215,11 @@ app.post('/api/listings', async (req, res) => {
       quantityDisplay,
       price,
       location,
+      address,
       description,
       phone,
+      altPhone,
+      email,
       image
     } = req.body;
 
@@ -227,8 +236,11 @@ app.post('/api/listings', async (req, res) => {
         quantity_display: quantityDisplay,
         price,
         location,
+        address,
         description,
         phone,
+        alt_phone: altPhone,
+        email,
         image,
         verified: true,
         rating: '5.0',
@@ -247,8 +259,11 @@ app.post('/api/listings', async (req, res) => {
       quantityDisplay,
       price,
       location,
+      address,
       description,
       phone,
+      altPhone,
+      email,
       image,
       verified: true // Seed simulated listing as verified for demo
     });
@@ -327,11 +342,14 @@ async function seedDatabase() {
         quantityDisplay: "1,200 Kg",
         price: "₹140 - ₹160 / Kg",
         location: "Salem",
+        address: "24, Kovil Street, Omalur, Salem",
         description: "GI-Tagged premium quality Salem turmeric. Sun-dried and polished. Low moisture content, rich yellow curcumin (5.2%). Ready for immediate pickup.",
         rating: "4.9",
         ratingCount: 14,
         verified: true,
         phone: "+919845011111",
+        altPhone: "+919845011112",
+        email: "selvam.turmeric@example.com",
         image: "assets/images/farmer-1.png"
       },
       {
@@ -342,11 +360,14 @@ async function seedDatabase() {
         quantityDisplay: "3.5 Tonnes",
         price: "₹24 - ₹28 / Kg",
         location: "Erode",
+        address: "7, Periyar Nagar, Gobichettipalayam, Erode",
         description: "Bellary Red onions. Well-cured, double-skin quality. Size 55mm+. Harvested last week, stored in ventilated cold structures. Perfect for bulk purchase.",
         rating: "4.8",
         ratingCount: 22,
         verified: true,
         phone: "+919845022222",
+        altPhone: "",
+        email: "gomathi.farms@example.com",
         image: "assets/images/farmer-2.png"
       },
       {
@@ -357,11 +378,14 @@ async function seedDatabase() {
         quantityDisplay: "450 Kg (18 Crates)",
         price: "₹30 - ₹35 / Kg",
         location: "Dharmapuri",
+        address: "Near Bus Stand, Pappireddipatti, Dharmapuri",
         description: "Local country tomatoes (Naatu Thakkali) and Hybrid varieties. Firm quality, suitable for hotel kitchens. Geotagged harvest. Daily supplies possible.",
         rating: "4.7",
         ratingCount: 9,
         verified: true,
         phone: "+919845033333",
+        altPhone: "+919845033334",
+        email: "",
         image: "assets/images/hero_bg.png"
       },
       {
@@ -372,11 +396,14 @@ async function seedDatabase() {
         quantityDisplay: "8 Tonnes (Bulk bags)",
         price: "₹45 - ₹48 / Kg",
         location: "Puducherry",
+        address: "FPO Office, Villianur Main Road, Puducherry",
         description: "High-grade Ponni raw rice and boiled rice collected from 15 registered farmers in Puducherry cluster. Lab-tested quality, milled and bagged in 25Kg sacs.",
         rating: "4.9",
         ratingCount: 38,
         verified: true,
         phone: "+919845044444",
+        altPhone: "+919845044445",
+        email: "contact@puducherryfpo.example.com",
         image: "assets/images/farmer-2.png"
       },
       {
@@ -387,11 +414,14 @@ async function seedDatabase() {
         quantityDisplay: "1,500 Kg",
         price: "₹90 - ₹110 / Kg",
         location: "Salem",
+        address: "Orchard Road, Omalur, Salem",
         description: "Salem Alphonso mangoes direct from our orchards in Omalur. Chemical-free natural ripening. Box packing available. Booking open for upcoming harvest.",
         rating: "4.6",
         ratingCount: 7,
         verified: false,
         phone: "+919845055555",
+        altPhone: "",
+        email: "",
         image: "assets/images/farmer-1.png"
       },
       {
@@ -402,11 +432,14 @@ async function seedDatabase() {
         quantityDisplay: "2.2 Tonnes",
         price: "₹18 - ₹22 / Kg",
         location: "Villupuram",
+        address: "14, Anna Nagar, Tindivanam, Villupuram",
         description: "Freshly dug table potatoes. Uniform size, zero disease or spots. Stored in red soil. Good starch content, perfect for restaurants and wholesale vendors.",
         rating: "4.8",
         ratingCount: 16,
         verified: true,
         phone: "+919845066666",
+        altPhone: "+919845066667",
+        email: "lakshmi.potatoes@example.com",
         image: "assets/images/hero_bg.png"
       }
     ];
