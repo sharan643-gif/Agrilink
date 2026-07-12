@@ -6,10 +6,62 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
+const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+// Supabase stores columns as snake_case (farmer_name, quantity_display, ...)
+// but the frontend (and the Mongoose model) expect camelCase. Normalize here
+// so the API always returns the same shape regardless of which DB served it.
+// Also guards against missing/null values so clients never receive
+// "undefined" for farmerName or quantityDisplay.
+function isEmptyValue(value) {
+  return value === undefined || value === null || String(value).trim() === '';
+}
+
+function firstDefined(...values) {
+  return values.find(v => !isEmptyValue(v));
+}
+
+function normalizeListing(row) {
+  if (!row) return row;
+
+  const farmerName = firstDefined(row.farmer_name, row.farmerName, row.name) || 'Not available';
+
+  const quantityDisplay = firstDefined(
+    row.quantity_display,
+    row.quantityDisplay,
+    row.availability,
+    row.availability_display,
+    !isEmptyValue(row.quantity) ? `${row.quantity} Kg` : undefined
+  ) || 'Not available';
+
+  return {
+    id: row.id || row._id,
+    farmerName,
+    avatar: row.avatar,
+    crop: row.crop,
+    quantity: row.quantity,
+    quantityDisplay,
+    price: row.price,
+    location: row.location,
+    description: row.description,
+    rating: row.rating,
+    ratingCount: row.rating_count ?? row.ratingCount ?? 0,
+    verified: row.verified,
+    phone: row.phone,
+    image: row.image,
+    createdAt: row.created_at ?? row.createdAt
+  };
+}
 
 // Middleware
 app.use(cors());
@@ -18,13 +70,13 @@ app.use(express.json());
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/farmer_direct';
 
-mongoose.connect(MONGODB_URI)
+mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 2000 })
   .then(() => {
     console.log('Successfully connected to MongoDB.');
     seedDatabase(); // Seed mockup listings if DB is empty
   })
   .catch(err => {
-    console.error('MongoDB connection error:', err.message);
+    console.warn('MongoDB not available; continuing without it.', err.message);
   });
 
 // ==================== SCHEMAS & MODELS ====================
@@ -65,11 +117,54 @@ const Registration = mongoose.model('Registration', RegistrationSchema);
 
 // ==================== REST API ENDPOINTS ====================
 
+app.get('/api/health', async (req, res) => {
+  if (!supabase) {
+    return res.status(503).json({ ok: false, message: 'Supabase is not configured.' });
+  }
+
+  try {
+    const { data, error } = await supabase.from('listings').select('id').limit(1);
+    if (error) {
+      return res.status(500).json({ ok: false, message: error.message, details: 'Create the public.listings table in Supabase to enable persistence.' });
+    }
+    res.json({ ok: true, message: 'Supabase connected.', sample: data });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: error.message });
+  }
+});
+
 // 1. Get Listings (with Search & Filter queries)
 // GET /api/listings?crop=onions&location=Salem&quantity=medium
 app.get('/api/listings', async (req, res) => {
   try {
     const { crop, location, quantity } = req.query;
+
+    if (supabase) {
+      let query = supabase.from('listings').select('*').order('created_at', { ascending: false });
+
+      if (crop) {
+        query = query.ilike('crop', `%${crop}%`);
+      }
+
+      if (location) {
+        query = query.eq('location', location);
+      }
+
+      if (quantity) {
+        if (quantity === 'small') {
+          query = query.lt('quantity', 500);
+        } else if (quantity === 'medium') {
+          query = query.gte('quantity', 500).lte('quantity', 2000);
+        } else if (quantity === 'large') {
+          query = query.gt('quantity', 2000);
+        }
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return res.json((data || []).map(normalizeListing));
+    }
+
     let query = {};
 
     // Filter by Crop (regex search, case-insensitive)
@@ -123,6 +218,27 @@ app.post('/api/listings', async (req, res) => {
       return res.status(400).json({ error: 'Missing required listing fields.' });
     }
 
+    if (supabase) {
+      const { data, error } = await supabase.from('listings').insert([{ 
+        farmer_name: farmerName,
+        avatar,
+        crop,
+        quantity,
+        quantity_display: quantityDisplay,
+        price,
+        location,
+        description,
+        phone,
+        image,
+        verified: true,
+        rating: '5.0',
+        rating_count: 0
+      }]).select().single();
+
+      if (error) throw error;
+      return res.status(201).json(normalizeListing(data));
+    }
+
     const newListing = new Listing({
       farmerName,
       avatar,
@@ -153,6 +269,21 @@ app.post('/api/registrations', async (req, res) => {
 
     if (!name || !phone || !role || !location || !village) {
       return res.status(400).json({ error: 'Missing required registration fields.' });
+    }
+
+    if (supabase) {
+      const { data, error } = await supabase.from('registrations').insert([{ 
+        name,
+        phone,
+        email,
+        role,
+        location,
+        village,
+        message
+      }]).select().single();
+
+      if (error) throw error;
+      return res.status(201).json(data);
     }
 
     const newRegistration = new Registration({
