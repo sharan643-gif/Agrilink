@@ -967,20 +967,33 @@ document.addEventListener('DOMContentLoaded', () => {
         // We no longer depend on a DB trigger — we insert explicitly here
         // so the data is guaranteed to be saved as soon as we have a session.
         if (data.session && data.user) {
+          // Use upsert instead of insert: if this id already has a farmers
+          // row (e.g. re-registering the same account, or a double
+          // submission of this form), update it instead of throwing a
+          // "duplicate key value violates unique constraint" error.
           const { error: profileError } = await supabaseClient
             .from('farmers')
-            .insert([{
+            .upsert([{
               id: data.user.id,
               name: name,
               email: email,
               phone: phone,
               location: location,
               crop_type: cropType
-            }]);
+            }], { onConflict: 'id' });
 
           if (profileError) {
             throw profileError;
           }
+        } else if (data.user && !data.session) {
+          // signUp succeeded but no session was issued. This happens when
+          // the email is already registered (Supabase returns the existing
+          // user without an error, to avoid leaking which emails exist) or
+          // when email confirmation is still required.
+          showAuthMessage(farmerRegisterForm, 'This email may already have an account. Try signing in instead, or check your email to confirm.', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnText;
+          return;
         }
 
         farmerRegisterForm.reset();
@@ -1068,19 +1081,32 @@ document.addEventListener('DOMContentLoaded', () => {
         // We no longer depend on a DB trigger — we insert explicitly here
         // so the data is guaranteed to be saved as soon as we have a session.
         if (data.session && data.user) {
+          // Use upsert instead of insert: if this id already has a buyers
+          // row (e.g. re-registering the same account, or a double
+          // submission of this form), update it instead of throwing a
+          // "duplicate key value violates unique constraint" error.
           const { error: profileError } = await supabaseClient
             .from('buyers')
-            .insert([{
+            .upsert([{
               id: data.user.id,
               name: name,
               email: email,
               phone: phone,
               address: address
-            }]);
+            }], { onConflict: 'id' });
 
           if (profileError) {
             throw profileError;
           }
+        } else if (data.user && !data.session) {
+          // signUp succeeded but no session was issued. This happens when
+          // the email is already registered (Supabase returns the existing
+          // user without an error, to avoid leaking which emails exist) or
+          // when email confirmation is still required.
+          showAuthMessage(buyerRegisterForm, 'This email may already have an account. Try signing in instead, or check your email to confirm.', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnText;
+          return;
         }
 
         buyerRegisterForm.reset();
