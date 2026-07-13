@@ -153,6 +153,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Search Directory DOMs
   const directoryGrid = document.getElementById('directory-grid');
+  const farmersListingGrid = document.getElementById('farmers-listing-grid');
+  const farmersListingTitle = document.getElementById('farmers-listing-title');
   const searchCropInput = document.getElementById('search-crop');
   const filterLocationSelect = document.getElementById('filter-location');
   const filterQuantitySelect = document.getElementById('filter-quantity');
@@ -176,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Forms
   const pilotRegistrationForm = document.getElementById('pilot-registration-form');
+  const farmerListingForm = document.getElementById('farmer-listing-form');
   const toastContainer = document.getElementById('toast-container');
 
 
@@ -232,6 +235,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Custom View Triggers
     if (targetPageId === 'page-buyers') {
       fetchListings();
+    }
+    if (targetPageId === 'page-farmers') {
+      fetchFarmersPreview();
+      updateFarmerListingFormAccess();
     }
     if (targetPageId === 'page-profile') {
       renderProfile();
@@ -405,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (error) throw error;
 
       listings = (data || []).map(normalizeListing);
-      renderDirectory(listings);
+      renderDirectory(listings, directoryGrid, resultsCountTitle);
     } catch (error) {
       console.warn('Supabase fetch error, falling back to local simulation data:', error.message);
       // Fallback local query simulation
@@ -426,7 +433,98 @@ document.addEventListener('DOMContentLoaded', () => {
       
       return cropMatch && locMatch && qtyMatch;
     });
-    renderDirectory(filtered);
+    renderDirectory(filtered, directoryGrid, resultsCountTitle);
+  }
+
+  // ==================== FARMER AUTH GATE (for the listing form) ====================
+  // Mirrors the same localStorage session check renderProfile() uses.
+  function getAuthSession() {
+    const role = localStorage.getItem('auth_role');
+    const sessionRaw = localStorage.getItem('auth_session');
+    let session = null;
+    try {
+      session = sessionRaw ? JSON.parse(sessionRaw) : null;
+    } catch (e) {
+      session = null;
+    }
+    const user = session && session.user ? session.user : null;
+    return { role, user };
+  }
+
+  function isFarmerSignedIn() {
+    const { role, user } = getAuthSession();
+    return role === 'farmer' && !!user;
+  }
+
+  // Shows the "Add Your Crop Details" form only for signed-in farmers;
+  // everyone else sees a sign-in / register prompt instead.
+  function updateFarmerListingFormAccess() {
+    const signedInBox = document.getElementById('farmer-listing-signed-in');
+    const signedOutBox = document.getElementById('farmer-listing-signed-out');
+    if (!signedInBox || !signedOutBox) return;
+
+    if (isFarmerSignedIn()) {
+      signedInBox.style.display = 'block';
+      signedOutBox.style.display = 'none';
+
+      // Prefill known fields from the account so the farmer doesn't
+      // have to retype their own name/phone/email every time.
+      const { user } = getAuthSession();
+      const meta = user.user_metadata || {};
+      const nameInput = document.getElementById('listing-farmer-name');
+      const phoneInput = document.getElementById('listing-phone');
+      const emailInput = document.getElementById('listing-email');
+      const locationInput = document.getElementById('listing-location');
+
+      if (nameInput && !nameInput.value) nameInput.value = meta.name || '';
+      if (phoneInput && !phoneInput.value) phoneInput.value = meta.phone || '';
+      if (emailInput && !emailInput.value) emailInput.value = user.email || '';
+      if (locationInput && !locationInput.value) locationInput.value = meta.location || '';
+    } else {
+      signedInBox.style.display = 'none';
+      signedOutBox.style.display = 'block';
+    }
+  }
+
+  // ==================== FARMERS PAGE — "MEET OUR FARMERS" PREVIEW ====================
+  // Read-only, unfiltered preview of live listings shown on the Farmers
+  // page so prospective farmers can see what their own listing will look
+  // like once they sign up. Reuses the same Supabase table / fallback
+  // data as the Buyers directory, just rendered into a different grid
+  // with no search/filter controls and capped to a handful of cards.
+  async function fetchFarmersPreview() {
+    if (!farmersListingGrid) return;
+
+    const PREVIEW_LIMIT = 6;
+    farmersListingGrid.innerHTML = `
+      <div class="no-results">
+        <p>Loading farmer profiles...</p>
+      </div>
+    `;
+
+    try {
+      if (!supabaseClient) {
+        throw new Error('Supabase client was not initialized properly.');
+      }
+
+      const { data, error } = await supabaseClient
+        .from('listings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(PREVIEW_LIMIT);
+
+      if (error) throw error;
+
+      const preview = (data || []).map(normalizeListing);
+      if (preview.length > 0) {
+        listings = preview.length > listings.length ? preview : listings;
+      }
+      renderDirectory(preview, farmersListingGrid, null);
+    } catch (error) {
+      console.warn('Supabase fetch error on farmers preview, falling back to local data:', error.message);
+      const mockSrc = listings.length > 0 ? listings : FALLBACK_LISTINGS;
+      renderDirectory(mockSrc.slice(0, PREVIEW_LIMIT), farmersListingGrid, null);
+    }
   }
 
   // Supabase stores columns as snake_case (farmer_name, quantity_display, ...)
@@ -508,17 +606,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==================== RENDER DIRECTORY CARDS ====================
-  function renderDirectory(dataList) {
-    directoryGrid.innerHTML = '';
-    
-    if (dataList.length === 1) {
-      resultsCountTitle.textContent = "1 Verified Listing Found";
-    } else {
-      resultsCountTitle.textContent = `${dataList.length} Verified Listings Found`;
+  // gridEl/titleEl let this same renderer power both the full Buyers
+  // search directory and the read-only "Meet Our Farmers" preview grid
+  // on the Farmers page. titleEl is optional — the farmers preview
+  // doesn't need a "N listings found" style counter.
+  function renderDirectory(dataList, gridEl, titleEl) {
+    const grid = gridEl || directoryGrid;
+    const title = titleEl !== undefined ? titleEl : resultsCountTitle;
+
+    grid.innerHTML = '';
+
+    if (title) {
+      if (dataList.length === 1) {
+        title.textContent = "1 Verified Listing Found";
+      } else {
+        title.textContent = `${dataList.length} Verified Listings Found`;
+      }
     }
 
     if (dataList.length === 0) {
-      directoryGrid.innerHTML = `
+      grid.innerHTML = `
         <div class="no-results">
           <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15.182 16.318A4.486 4.486 0 0012.016 15a4.486 4.486 0 00-3.198 1.318M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z"></path>
@@ -577,13 +684,14 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="btn btn-secondary card-btn contact-farmer-trigger" data-id="${targetId}">Contact Farmer</button>
         </div>
       `;
-      directoryGrid.appendChild(card);
+      grid.appendChild(card);
     });
 
-    // Attach Event Listeners
-    document.querySelectorAll('.contact-farmer-trigger').forEach(btn => {
+    // Attach Event Listeners (scoped to this grid so we don't double-bind
+    // handlers on the other grid's cards when both are on the page)
+    grid.querySelectorAll('.contact-farmer-trigger').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const id = e.target.getAttribute('data-id');
+        const id = e.currentTarget.getAttribute('data-id');
         openContactModal(id);
       });
     });
@@ -707,6 +815,126 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (error) {
         console.warn('Supabase error, could not save registration:', error.message);
         showToast(`Could not save your registration — please try again.`, 'error');
+      }
+    });
+  }
+
+  // Farmer "Add Produce Listing" Form Submission
+  if (farmerListingForm) {
+    farmerListingForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!isFarmerSignedIn()) {
+        showToast('Please sign in as a Farmer before publishing a listing.', 'error');
+        updateFarmerListingFormAccess();
+        return;
+      }
+
+      const farmerName = document.getElementById('listing-farmer-name').value.trim();
+      const phone = document.getElementById('listing-phone').value.trim();
+      const altPhone = document.getElementById('listing-alt-phone').value.trim();
+      const email = document.getElementById('listing-email').value.trim();
+      const crop = document.getElementById('listing-crop').value.trim();
+      const location = document.getElementById('listing-location').value;
+      const address = document.getElementById('listing-address').value.trim();
+      const quantity = Number(document.getElementById('listing-quantity').value);
+      let quantityDisplay = document.getElementById('listing-quantity-display').value.trim();
+      const price = document.getElementById('listing-price').value.trim();
+      const image = 'assets/images/hero_bg.png';
+      const avatar = 'assets/images/farmer-1.png';
+      const description = document.getElementById('listing-description').value.trim();
+
+      if (!farmerName || !phone || !crop || !location || !quantity || !price) {
+        showToast('Please fill in all required fields (marked *).', 'error');
+        return;
+      }
+
+      if (!quantityDisplay) {
+        quantityDisplay = `${quantity.toLocaleString('en-IN')} Kg`;
+      }
+
+      const newListingRow = {
+        farmer_name: farmerName,
+        avatar,
+        crop,
+        quantity,
+        quantity_display: quantityDisplay,
+        price,
+        location,
+        address,
+        description,
+        phone,
+        alt_phone: altPhone,
+        email,
+        image,
+        verified: false,
+        rating: '5.0',
+        rating_count: 0
+      };
+
+      try {
+        if (!supabaseClient) {
+          throw new Error('Supabase client was not initialized properly.');
+        }
+
+        const { data, error } = await supabaseClient
+          .from('listings')
+          .insert([newListingRow])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const saved = normalizeListing(data);
+        listings = [saved, ...listings];
+
+        showToast(`Listing published! "${crop}" is now live for buyers to see.`);
+        farmerListingForm.reset();
+
+        // Refresh whichever grid(s) are currently visible so the new
+        // listing shows up immediately without a page reload.
+        if (document.getElementById('page-farmers')?.classList.contains('active')) {
+          fetchFarmersPreview();
+        }
+        if (document.getElementById('page-buyers')?.classList.contains('active')) {
+          fetchListings();
+        }
+      } catch (error) {
+        console.warn('Supabase error, saving listing locally instead:', error.message);
+
+        // Fallback: keep the listing in memory so it still shows up in
+        // this session's grids even without a database connection.
+        const localListing = {
+          id: `local-${Date.now()}`,
+          farmerName,
+          avatar,
+          crop,
+          quantity,
+          quantityDisplay,
+          price,
+          location,
+          address,
+          description,
+          rating: '5.0',
+          ratingCount: 0,
+          verified: false,
+          phone,
+          altPhone,
+          email,
+          image,
+          createdAt: new Date().toISOString()
+        };
+        listings = [localListing, ...listings];
+
+        showToast(`Listing saved locally — "${crop}" is now visible in this session.`, 'success');
+        farmerListingForm.reset();
+
+        if (document.getElementById('page-farmers')?.classList.contains('active')) {
+          renderDirectory(listings.slice(0, 6), farmersListingGrid, null);
+        }
+        if (document.getElementById('page-buyers')?.classList.contains('active')) {
+          renderDirectory(listings, directoryGrid, resultsCountTitle);
+        }
       }
     });
   }
