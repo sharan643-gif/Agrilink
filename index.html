@@ -492,6 +492,113 @@
           </div>
         </div>
       </div>
+
+      <!-- Add Produce Listing Form -->
+      <div class="section-padding use-cases-bg" style="border-top:1px solid var(--border-color);">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-subtitle">List Your Produce</span>
+            <h2>Add Your Crop Details</h2>
+            <p>Fill in your produce details below and go live on the directory instantly — bulk buyers will be able to find and contact you directly.</p>
+          </div>
+
+          <div class="contact-card" style="max-width:900px; margin:0 auto;">
+
+            <!-- Shown only when signed in as a Farmer -->
+            <div id="farmer-listing-signed-in" style="display:none;">
+              <form id="farmer-listing-form" novalidate>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="listing-farmer-name">Your Name / FPO Name *</label>
+                    <input type="text" id="listing-farmer-name" placeholder="e.g. Selvam Raman" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="listing-phone">Phone Number *</label>
+                    <input type="tel" id="listing-phone" placeholder="10-digit mobile number" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="listing-alt-phone">Alternate Phone</label>
+                    <input type="tel" id="listing-alt-phone" placeholder="Optional secondary number">
+                  </div>
+                  <div class="form-group">
+                    <label for="listing-email">Email Address</label>
+                    <input type="email" id="listing-email" placeholder="name@example.com">
+                  </div>
+                  <div class="form-group">
+                    <label for="listing-crop">Crop / Produce Name *</label>
+                    <input type="text" id="listing-crop" placeholder="e.g. Salem Turmeric, Onions" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="listing-location">District / Location *</label>
+                    <select id="listing-location" required>
+                      <option value="">Select District</option>
+                      <option value="Salem">Salem</option>
+                      <option value="Erode">Erode</option>
+                      <option value="Dharmapuri">Dharmapuri</option>
+                      <option value="Puducherry">Puducherry</option>
+                      <option value="Villupuram">Villupuram</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="listing-address">Village / Full Address</label>
+                    <input type="text" id="listing-address" placeholder="e.g. Omalur, Salem">
+                  </div>
+                  <div class="form-group">
+                    <label for="listing-quantity">Available Quantity (Kg) *</label>
+                    <input type="number" id="listing-quantity" min="1" placeholder="e.g. 1200" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="listing-quantity-display">Quantity Display Text</label>
+                    <input type="text" id="listing-quantity-display" placeholder="e.g. 1,200 Kg or 3.5 Tonnes">
+                  </div>
+                  <div class="form-group">
+                    <label for="listing-price">Price Range *</label>
+                    <input type="text" id="listing-price" placeholder="e.g. ₹140 - ₹160 / Kg" required>
+                  </div>
+                  <div class="form-group full-width">
+                    <label for="listing-description">Description</label>
+                    <textarea id="listing-description" rows="4" placeholder="Describe quality, harvest date, packaging, certifications, etc."></textarea>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top:2rem; width:100%;">Publish My Listing</button>
+              </form>
+            </div>
+
+            <!-- Shown when not signed in as a Farmer -->
+            <div id="farmer-listing-signed-out" style="display:none; text-align:center;">
+              <div class="auth-icon farmer-icon-bg" style="margin:0 auto 1rem;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg>
+              </div>
+              <h3 style="margin-bottom:0.5rem;">Sign In to List Your Produce</h3>
+              <p style="color:var(--text-muted); margin-bottom:1.5rem;">Create a free Farmer account (or sign in if you already have one) to publish crop listings that bulk buyers can see and contact you about.</p>
+              <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                <a href="#/farmer-signin" class="btn btn-primary">Farmer Sign In</a>
+                <a href="#/farmer-register" class="btn btn-secondary">Create Farmer Account</a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Meet Our Farmers — Listing Directory Preview -->
+      <div class="section-padding">
+        <div class="container">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+            <div class="section-header" style="text-align:left; margin-bottom:0;">
+              <span class="section-subtitle">Live On The Platform</span>
+              <h2 style="margin-bottom:0.5rem;" id="farmers-listing-title">Meet Our Verified Farmers</h2>
+              <p style="margin-bottom:0;">Real growers already listing produce on Farmer-Direct. This is exactly how bulk buyers will discover you.</p>
+            </div>
+            <a href="#/farmer-register" class="btn btn-primary" style="white-space:nowrap;">List Your Produce</a>
+          </div>
+
+          <div class="directory-grid" id="farmers-listing-grid">
+            <!-- Populated dynamically via app.js -->
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ==================== FOR BUYERS PAGE VIEW ==================== -->
