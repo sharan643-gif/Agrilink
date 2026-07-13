@@ -2171,11 +2171,45 @@ html[data-theme="dark"] .bg-sheen {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
-@media (hover: none), (prefers-reduced-motion: reduce) {
+/* Only truly disable motion for users who've asked for it at the OS
+   level. Touch/hover-none is NOT a proxy for "wants no motion" — that
+   was killing the animation on virtually every phone and tablet. */
+@media (prefers-reduced-motion: reduce) {
   .bg-orb,
   .bg-grid,
   .bg-sheen {
     animation: none;
+  }
+}
+
+/* Mobile-tuned version: keep the animation running, but lighten it so
+   it stays smooth on weaker GPUs — shorter travel distances, fewer
+   blurred layers active at once, and a smaller blur radius (blur is
+   one of the most expensive things to composite on mobile Safari/
+   Chrome). Reduced-motion users are still excluded via the rule above. */
+@media (hover: none) and (pointer: coarse) {
+  .bg-orb {
+    filter: blur(40px);
+  }
+
+  .bg-orb-1 { width: 300px; height: 300px; animation: orbDriftA 16s ease-in-out infinite; }
+  .bg-orb-2 { width: 320px; height: 320px; animation: orbDriftB 19s ease-in-out infinite; animation-delay: -6s; }
+
+  /* Third orb is the least visible layer and the most expensive to
+     keep animating on small screens — freeze it as a static accent. */
+  .bg-orb-3 {
+    width: 220px;
+    height: 220px;
+    animation: none;
+  }
+
+  .bg-grid {
+    animation: none;
+    opacity: 0.04;
+  }
+
+  .bg-sheen {
+    animation: sheenSweep 9s ease-in-out infinite;
   }
 }
 
