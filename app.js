@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
   (function initLiquidGlassScrollReveal() {
     if (!('IntersectionObserver' in window)) return;
 
-    const REVEAL_SELECTOR = '.step-card, .auth-card, .directory-card';
+    const REVEAL_SELECTOR = '.step-card, .auth-card, .directory-card, .prop-card, .use-case-box, .trust-item, .map-card, .pilot-text, .footer-col';
 
     const io = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
@@ -224,7 +224,17 @@ document.addEventListener('DOMContentLoaded', () => {
       root.querySelectorAll(REVEAL_SELECTOR).forEach((el) => {
         if (el.dataset.lgObserved) return;
         el.dataset.lgObserved = 'true';
-        if (!lgPrefersReducedMotion) el.classList.add('lg-reveal');
+        if (!lgPrefersReducedMotion) {
+          el.classList.add('lg-reveal');
+          // Stagger cards that share a parent (grids, step rows, etc.) so
+          // they fade up one after another instead of all at once — mirrors
+          // the staggered card entrance from the reference animation.
+          const groupSiblings = Array.from(el.parentElement.children).filter((sib) =>
+            sib.matches(REVEAL_SELECTOR)
+          );
+          const idx = groupSiblings.indexOf(el);
+          if (idx > 0) el.style.transitionDelay = `${Math.min(idx, 5) * 80}ms`;
+        }
         io.observe(el);
       });
     }
@@ -238,6 +248,49 @@ document.addEventListener('DOMContentLoaded', () => {
       const mo = new MutationObserver(() => observeAll(grid));
       mo.observe(grid, { childList: true });
     });
+  })();
+
+  // ---- Count-up animation for stat numbers ----
+  // Animates .stat-num values (e.g. "500+", "12", "80+") from 0 up to
+  // their target when they scroll into view, preserving any non-numeric
+  // suffix. Mirrors the number count-up seen in the reference animation.
+  (function initStatCountUp() {
+    if (!('IntersectionObserver' in window)) return;
+    const statEls = document.querySelectorAll('.stat-num');
+    if (!statEls.length) return;
+
+    function animateCount(el) {
+      const raw = el.textContent.trim();
+      const match = raw.match(/^([\d,]+)(.*)$/);
+      if (!match) return;
+      const target = parseInt(match[1].replace(/,/g, ''), 10);
+      const suffix = match[2] || '';
+      if (lgPrefersReducedMotion || !isFinite(target)) {
+        el.textContent = raw;
+        return;
+      }
+      const duration = 1200;
+      const start = performance.now();
+      function tick(now) {
+        const p = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+        el.textContent = Math.round(target * eased).toLocaleString() + suffix;
+        if (p < 1) requestAnimationFrame(tick);
+        else el.textContent = target.toLocaleString() + suffix;
+      }
+      requestAnimationFrame(tick);
+    }
+
+    const statIo = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          animateCount(entry.target);
+          statIo.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.4 });
+
+    statEls.forEach((el) => statIo.observe(el));
   })();
 
   // ==================== STATE & BACKEND CONFIG ====================
@@ -805,7 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dataList.forEach(item => {
       const card = document.createElement('article');
-      card.className = 'directory-card';
+      card.className = 'directory-card glow-card';
       
       const verificationBadgeHtml = item.verified 
         ? `<div class="verification-badge">
@@ -1886,6 +1939,64 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', requestTiltUpdate);
     updateTilt();
   }
+
+  // ---- Scroll progress glow beam (fills + subtly re-hues as you scroll) ----
+  (function initScrollProgressGlow() {
+    const fill = document.getElementById('scroll-progress-fill');
+    if (!fill) return;
+
+    let ticking = false;
+    const update = () => {
+      const doc = document.documentElement;
+      const scrollable = (doc.scrollHeight - doc.clientHeight) || 1;
+      const pct = Math.min(100, Math.max(0, (window.scrollY / scrollable) * 100));
+      fill.style.width = pct.toFixed(2) + '%';
+      ticking = false;
+    };
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
+    }, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  })();
+
+  // ---- Pointer-tracked spotlight glow for `.glow-card` surfaces ----
+  // Sets --spot-x/--spot-y (percentages) on the card so the radial-gradient
+  // glow defined in CSS follows the cursor. Delegated + rAF-throttled so it
+  // stays cheap even with many cards (e.g. the directory results grid).
+  (function initGlowCardSpotlight() {
+    if (lgPrefersReducedMotion || !lgHasHover) return;
+
+    let pendingEl = null;
+    let pendingX = 0;
+    let pendingY = 0;
+    let ticking = false;
+
+    const apply = () => {
+      if (pendingEl) {
+        pendingEl.style.setProperty('--spot-x', pendingX.toFixed(1) + '%');
+        pendingEl.style.setProperty('--spot-y', pendingY.toFixed(1) + '%');
+      }
+      ticking = false;
+    };
+
+    document.addEventListener('pointermove', (e) => {
+      const card = e.target.closest ? e.target.closest('.glow-card') : null;
+      if (!card) return;
+      const rect = card.getBoundingClientRect();
+      pendingEl = card;
+      pendingX = ((e.clientX - rect.left) / rect.width) * 100;
+      pendingY = ((e.clientY - rect.top) / rect.height) * 100;
+      if (!ticking) {
+        requestAnimationFrame(apply);
+        ticking = true;
+      }
+    }, { passive: true });
+  })();
 
   // ---- Icon morph helper: toggling `.swapped` on any `.icon-morph` element ----
   document.querySelectorAll('[data-icon-morph-target]').forEach((trigger) => {
