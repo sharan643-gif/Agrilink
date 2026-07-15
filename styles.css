@@ -429,7 +429,7 @@ main {
 .hero-badge {
   display: inline-block;
   background-color: rgba(255, 255, 255, 0.15);
-  color: var(--primary-light);
+  color: rgba(255, 255, 255, 0.92);
   padding: 0.5rem 1.25rem;
   border-radius: 50px;
   font-size: 0.85rem;
@@ -2954,5 +2954,497 @@ html[data-theme="dark"] .theme-toggle-thumb .icon-moon { display: block; }
   .tabbar-icon,
   .tabbar-indicator {
     transition: none;
+  }
+}
+
+/* ============================================================================
+ * LIQUID GLASS 27 — Apple-style enhancement layer
+ * ============================================================================
+ * Everything below extends the rules above it — it never removes or
+ * overrides functionality, only deepens the glass/depth system that was
+ * already started (--glass-*, --depth-shadow, "iOS 27" dark palette) and
+ * adds Apple-style spring motion. Sections:
+ *   1. Tokens (spring easing, specular gradients, glow)
+ *   2. Header / navigation — deepened glass, specular edge
+ *   3. Buttons — pill shape, glossy sheen, spring press
+ *   4. Cards — directory / auth / step — layered glass depth
+ *   5. Modal — spring pop-in, deeper glass
+ *   6. Toast — glass capsule, spring slide
+ *   7. Hero — "3B" headline (Big / Bold / Bloom), ambient orbs, particles
+ *   8. Theme toggle — glide + glow
+ *   9. Mobile tabbar — reflection
+ *   10. Ripple + reveal utilities (paired with app.js)
+ *   11. Reduced motion + focus visibility
+ * ==========================================================================*/
+
+/* ---- 1. Tokens ---- */
+:root {
+  --lg-spring: cubic-bezier(0.34, 1.56, 0.64, 1);       /* overshoot spring */
+  --lg-spring-soft: cubic-bezier(0.22, 1, 0.36, 1);      /* gentle settle */
+
+  --lg-specular: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.12) 22%,
+    rgba(255, 255, 255, 0) 45%
+  );
+  --lg-sheen-strong: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.05) 35%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  --lg-glow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset,
+             0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  --lg-ring: rgba(var(--accent-glow-color), 0.45);
+}
+
+html[data-theme="dark"] {
+  --lg-specular: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.04) 22%,
+    rgba(255, 255, 255, 0) 45%
+  );
+  --lg-sheen-strong: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.02) 35%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  --lg-glow: 0 0 0 1px rgba(255, 255, 255, 0.07) inset,
+             0 1px 0 rgba(255, 255, 255, 0.12) inset;
+}
+
+/* ---- 2. Header / navigation ---- */
+.nav-container {
+  position: relative;
+  isolation: isolate;
+}
+
+.nav-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--lg-specular);
+  opacity: 0.9;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.nav-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--lg-glow);
+  pointer-events: none;
+}
+
+header.scrolled .nav-container {
+  box-shadow: var(--depth-shadow), var(--lg-glow);
+}
+
+.nav-link {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color 0.2s ease, background-color 0.25s var(--lg-spring-soft),
+              transform 0.35s var(--lg-spring), box-shadow 0.25s ease;
+}
+
+.nav-link.active {
+  background: var(--lg-sheen-strong), var(--primary-alpha);
+  color: var(--primary);
+}
+
+html[data-theme="dark"] .nav-link.active {
+  color: var(--primary-dark);
+}
+
+.nav-link:active,
+.nav-cta:active {
+  transform: scale(0.94);
+}
+
+.nav-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform 0.35s var(--lg-spring);
+}
+
+.nav-cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--lg-sheen-strong);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* ---- 3. Buttons — pill shape + glossy sheen + spring ---- */
+.btn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 999px;
+  transition: transform 0.45s var(--lg-spring), box-shadow 0.35s var(--lg-spring-soft),
+              background-color 0.25s ease;
+  will-change: transform;
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--lg-sheen-strong);
+  opacity: 0.85;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.btn:hover::before {
+  opacity: 1;
+}
+
+.btn:active {
+  transform: scale(0.96) translateY(0) !important;
+  transition-duration: 0.12s;
+}
+
+.btn-primary:hover,
+.btn-accent:hover {
+  transform: translateY(-3px) scale(1.015);
+}
+
+.btn-secondary {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* ---- 4. Cards — directory / auth / step ---- */
+.directory-card,
+.auth-card,
+.step-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform 0.5s var(--lg-spring-soft), box-shadow 0.45s var(--lg-spring-soft),
+              border-color 0.3s ease;
+}
+
+.directory-card::before,
+.auth-card::before,
+.step-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--lg-specular);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.directory-card:hover::before,
+.auth-card:hover::before,
+.step-card:hover::before {
+  opacity: 0.8;
+}
+
+.directory-card:hover,
+.step-card:hover {
+  box-shadow: var(--depth-shadow-hover), var(--lg-glow);
+}
+
+/* First-reveal state — only applied by app.js via .lg-reveal, so cards
+   render normally with no JS (progressive enhancement). */
+.lg-reveal {
+  opacity: 0;
+  transform: translateY(28px) scale(0.97);
+  transition: opacity 0.7s var(--lg-spring-soft), transform 0.7s var(--lg-spring-soft);
+}
+
+.lg-reveal.lg-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* ---- 5. Modal — spring pop-in, deeper glass ---- */
+.modal-overlay {
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  background: rgba(10, 13, 18, 0.42);
+  transition: opacity 0.35s var(--lg-spring-soft), backdrop-filter 0.35s ease;
+}
+
+html[data-theme="dark"] .modal-overlay {
+  background: rgba(2, 4, 6, 0.6);
+}
+
+.modal-box {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--depth-shadow-hover), var(--lg-glow);
+  transform: translateY(24px) scale(0.94);
+  opacity: 0;
+  transition: transform 0.5s var(--lg-spring), opacity 0.35s var(--lg-spring-soft);
+}
+
+.modal-overlay.active .modal-box {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.modal-box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--lg-specular);
+  pointer-events: none;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(8px);
+  transition: transform 0.35s var(--lg-spring), background-color 0.25s ease;
+}
+
+.modal-close:hover {
+  transform: rotate(90deg) scale(1.08);
+  background: var(--primary-alpha);
+}
+
+/* ---- 6. Toast — glass capsule, spring slide ---- */
+.toast {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  color: var(--text-main);
+  border: 1px solid var(--glass-border);
+  border-left: 4px solid var(--primary);
+  border-radius: 999px;
+  padding: 0.9rem 1.5rem;
+  box-shadow: var(--depth-shadow-hover), var(--lg-glow);
+  animation: lgToastIn 0.55s var(--lg-spring) forwards;
+}
+
+@keyframes lgToastIn {
+  from { transform: translateY(-24px) scale(0.9); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ---- 7. Hero — "3B" headline (Big / Bold / Bloom) + ambient depth ---- */
+#page-home .hero-section {
+  position: relative;
+  isolation: isolate;
+}
+
+#page-home .hero-badge {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  box-shadow: var(--lg-glow);
+  animation: lgFadeUp 0.7s var(--lg-spring-soft) both;
+}
+
+#page-home .hero-title {
+  animation: lgFadeUp 0.8s 0.05s var(--lg-spring-soft) both;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.25);
+}
+
+#page-home .hero-title span {
+  background: linear-gradient(120deg, #81C784 0%, #B9F6CA 45%, #81C784 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 18px rgba(129, 199, 132, 0.45));
+}
+
+#page-home .hero-subtitle {
+  animation: lgFadeUp 0.8s 0.1s var(--lg-spring-soft) both;
+}
+
+#page-home .hero-buttons {
+  animation: lgFadeUp 0.8s 0.16s var(--lg-spring-soft) both;
+}
+
+@keyframes lgFadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Ambient blurred orbs — markup lives directly in index.html now
+   (.lg-orb.lg-orb--a/b/c inside .hero-section); JS in app.js only adds
+   the mouse-parallax drift, sizing/position/color live entirely in CSS. */
+.lg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform;
+  transition: transform 0.4s var(--lg-spring-soft);
+}
+
+.lg-orb--a {
+  width: 320px;
+  height: 320px;
+  top: -10%;
+  left: 6%;
+  background: radial-gradient(circle, rgba(129, 199, 132, 0.55), transparent 70%);
+}
+
+.lg-orb--b {
+  width: 260px;
+  height: 260px;
+  top: 52%;
+  left: 80%;
+  background: radial-gradient(circle, rgba(230, 81, 0, 0.35), transparent 70%);
+}
+
+.lg-orb--c {
+  width: 190px;
+  height: 190px;
+  top: 8%;
+  left: 88%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.25), transparent 70%);
+}
+
+/* Floating dust particles — injected by app.js as .lg-particle (random
+   count/position each load, so generating them in JS rather than markup) */
+.lg-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  z-index: 0;
+  animation: lgFloat linear infinite;
+}
+
+@keyframes lgFloat {
+  0%   { transform: translateY(0) translateX(0); opacity: 0; }
+  10%  { opacity: 0.7; }
+  90%  { opacity: 0.4; }
+  100% { transform: translateY(-140px) translateX(12px); opacity: 0; }
+}
+
+/* ---- 8. Theme toggle — glide + glow ---- */
+.theme-toggle {
+  transition: background-color 0.4s var(--lg-spring-soft), box-shadow 0.4s ease;
+}
+
+.theme-toggle-thumb {
+  transition: transform 0.5s var(--lg-spring), background-color 0.3s ease;
+}
+
+.theme-toggle[aria-checked="true"] {
+  box-shadow: 0 0 0 1px var(--lg-ring), 0 0 14px var(--lg-ring);
+}
+
+/* ---- 9. Mobile tabbar — reflection ---- */
+.mobile-tabbar-glass {
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-tabbar-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--lg-specular);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ---- 10. Ripple + reveal utilities (paired with app.js) ---- */
+.lg-ripple-host {
+  position: relative;
+  overflow: hidden;
+}
+
+.lg-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 70%);
+  transform: scale(0);
+  pointer-events: none;
+  animation: lgRippleOut 0.65s var(--lg-spring-soft) forwards;
+  z-index: 5;
+}
+
+html[data-theme="dark"] .lg-ripple {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+@keyframes lgRippleOut {
+  to { transform: scale(2.6); opacity: 0; }
+}
+
+/* Full-viewport theme-switch wipe overlay, created transiently by app.js */
+.lg-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  clip-path: circle(0% at var(--lg-x, 50%) var(--lg-y, 50%));
+  animation: lgWipeOut 0.6s var(--lg-spring-soft) forwards;
+  background: radial-gradient(circle at var(--lg-x, 50%) var(--lg-y, 50%),
+              rgba(var(--accent-glow-color), 0.35), transparent 60%);
+}
+
+@keyframes lgWipeOut {
+  0%   { clip-path: circle(0% at var(--lg-x, 50%) var(--lg-y, 50%)); opacity: 1; }
+  70%  { clip-path: circle(140% at var(--lg-x, 50%) var(--lg-y, 50%)); opacity: 1; }
+  100% { clip-path: circle(140% at var(--lg-x, 50%) var(--lg-y, 50%)); opacity: 0; }
+}
+
+/* ---- 11. Reduced motion + focus visibility ---- */
+.btn:focus-visible,
+.nav-link:focus-visible,
+.nav-cta:focus-visible,
+.theme-toggle:focus-visible,
+.modal-close:focus-visible,
+.directory-card:focus-visible,
+.auth-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-orb,
+  .lg-particle,
+  .lg-ripple,
+  .lg-wipe {
+    display: none !important;
+  }
+
+  #page-home .hero-badge,
+  #page-home .hero-title,
+  #page-home .hero-subtitle,
+  #page-home .hero-buttons {
+    animation: none !important;
+  }
+
+  .lg-reveal {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
