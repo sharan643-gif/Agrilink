@@ -34,6 +34,58 @@
 </head>
 <body>
 
+  <!-- ==================== INTRO / SPLASH ANIMATION ====================
+       Plays once on the first load of a browser session (sessionStorage
+       flag). Logo scales/fades in, brand name fades in beneath it, both
+       hold briefly, then scale up + fade out while the intro overlay
+       itself fades away to reveal the homepage underneath. Pure CSS
+       animation (no JS dependency for the motion itself) so it stays
+       lightweight; a tiny inline script only decides whether to show it
+       at all and removes the overlay from the DOM once it's done. -->
+  <div id="intro-splash" aria-hidden="true">
+    <div class="intro-splash__mark">
+      <svg class="intro-splash__logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17 8C14.24 8 12 10.24 12 13C12 15.76 14.24 18 17 18C19.76 18 22 15.76 22 13C22 10.24 19.76 8 17 8ZM17 16.2C15.24 16.2 13.8 14.76 13.8 13C13.8 11.24 15.24 9.8 17 9.8C18.76 9.8 20.2 11.24 20.2 13C20.2 14.76 18.76 16.2 17 16.2ZM7 2C3.13 2 0 5.13 0 9C0 13.3 4.25 17.5 10 21.8C10.55 22.2 11.27 22.4 12 22.4C12.73 22.4 13.45 22.2 14 21.8C15.02 21.03 16.03 20.17 17 19.26C16 19.04 15.06 18.59 14.23 17.95C13.56 18.5 12.8 19.12 12 19.75C7 15.9 2 12.2 2 9C2 6.24 4.24 4 7 4C8.94 4 10.64 5.12 11.41 6.85C11.64 7.37 12.36 7.37 12.59 6.85C13.06 5.8 13.97 4.95 15.06 4.46C14.72 3.73 14.2 3.09 13.55 2.6C12.06 1.48 10.15 1.59 9.17 2.2C8.5 1.9 7.77 2 7 2Z"/>
+      </svg>
+    </div>
+    <span class="intro-splash__name">Farmer-Direct</span>
+  </div>
+
+  <script>
+    (function () {
+      var splash = document.getElementById('intro-splash');
+      if (!splash) return;
+
+      // Only play once per browser session, and skip entirely if the user
+      // prefers reduced motion -- just remove the overlay immediately.
+      var alreadyShown = sessionStorage.getItem('introPlayed');
+      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (alreadyShown || reduceMotion) {
+        splash.remove();
+        return;
+      }
+
+      sessionStorage.setItem('introPlayed', 'true');
+      document.documentElement.classList.add('intro-active');
+
+      // Overlay fade-out finishes at 1.8s + 0.5s = 2.3s (see styles.css).
+      // Drop intro-active right then so the homepage fades/slides in as the
+      // overlay disappears, then remove the overlay node shortly after so
+      // it doesn't sit in the DOM / a11y tree once it's invisible.
+      window.setTimeout(function () {
+        document.documentElement.classList.remove('intro-active');
+      }, 2300);
+
+      window.setTimeout(function () {
+        splash.remove();
+      }, 2400);
+    })();
+  </script>
+
+  <!-- Scroll Progress Glow Bar :: fills + glows as the page is scrolled (see app.js "initScrollProgressGlow") -->
+  <div class="scroll-progress" id="scroll-progress" aria-hidden="true"><span class="scroll-progress-fill" id="scroll-progress-fill"></span></div>
+
   <!-- Floating Header Navigation :: Liquid-Glass Pill Bar -->
   <header id="header">
     <div class="container">
@@ -106,7 +158,7 @@
 
             <li class="nav-item nav-item--text"><a href="#/farmer-signin" class="nav-link"><span>Farmer Login</span></a></li>
             <li class="nav-item nav-item--text"><a href="#/buyer-signin" class="nav-link"><span>Buyer Login</span></a></li>
-            <li class="nav-item nav-item--cta"><a href="#/contact" class="nav-link nav-cta"><span>Join Pilot</span></a></li>
+            <li class="nav-item nav-item--cta"><a href="#/contact" class="nav-link nav-cta glow-cta"><span>Join Pilot</span></a></li>
           </ul>
         </nav>
 
@@ -174,11 +226,11 @@
         <div class="lg-orb lg-orb--c" aria-hidden="true"></div>
         <div class="container hero-content">
           <span class="hero-badge">Verified Farmer Directory • Salem & West Tamil Nadu Pilot</span>
-          <h1 class="hero-title">Farmer-Direct <span>Marketplace</span></h1>
+          <h1 class="hero-title">Farmer-Direct <span class="glow-heading">Marketplace</span></h1>
           <p class="hero-subtitle">Connect directly with verified farmers. No middlemen, no commissions, no broker fees. Better income for farmers, transparent and traceable sourcing for bulk buyers.</p>
           <div class="hero-buttons">
-            <a href="#/farmers" class="btn btn-primary">I'm a Farmer — List Produce</a>
-            <a href="#/buyers" class="btn btn-accent">I'm a Buyer — Find Farmers</a>
+            <a href="#/farmers" class="btn btn-primary glow-cta">I'm a Farmer — List Produce</a>
+            <a href="#/buyers" class="btn btn-accent glow-cta">I'm a Buyer — Find Farmers</a>
           </div>
         </div>
       </div>
@@ -192,9 +244,9 @@
             <p>Traditional agricultural marketing in India relies on long chains of intermediaries, leading to massive inefficiencies, poor margins for farmers, and lack of transparency for buyers.</p>
           </div>
 
-          <div class="problem-solution-grid">
+          <div class="problem-solution-grid tilt-scene">
             <!-- The Problem -->
-            <div class="prop-card problem">
+            <div class="prop-card problem tilt-on-scroll glow-card">
               <h3 class="prop-title">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 The Traditional Mandi System
@@ -208,7 +260,7 @@
             </div>
 
             <!-- The Solution -->
-            <div class="prop-card solution">
+            <div class="prop-card solution tilt-on-scroll glow-card">
               <h3 class="prop-title">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                 The Farmer-Direct Model
@@ -233,9 +285,9 @@
             <p>Empowering local smallholders and bulk buyers to collaborate and thrive together without platform-inserted transactions.</p>
           </div>
 
-          <div class="use-cases-grid">
+          <div class="use-cases-grid tilt-scene">
             <!-- Farmers Box -->
-            <div class="use-case-box farmer">
+            <div class="use-case-box farmer tilt-on-scroll glow-card">
               <div class="use-case-header">
                 <div class="use-case-icon">
                   <svg viewBox="0 0 24 24"><path d="M20.4 5.6C20.1 5.2 19.6 5 19 5H5C4.4 5 3.9 5.2 3.6 5.6C3.2 6 3 6.5 3 7.1V18C3 19.1 3.9 20 5 20H19C20.1 20 21 19.1 21 18V7.1C21 6.5 20.8 6 20.4 5.6ZM19 7V8.5C19 8.8 18.8 9 18.5 9H5.5C5.2 9 5 8.8 5 8.5V7H19ZM5 18V11H19V18H5Z" fill="currentColor"/></svg>
@@ -253,7 +305,7 @@
             </div>
 
             <!-- Buyers Box -->
-            <div class="use-case-box buyer">
+            <div class="use-case-box buyer tilt-on-scroll glow-card">
               <div class="use-case-header">
                 <div class="use-case-icon">
                   <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9C5 13.17 9.42 18.66 11.24 20.76C11.64 21.22 12.37 21.22 12.77 20.76C14.58 18.66 19 13.17 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="currentColor"/></svg>
@@ -285,7 +337,7 @@
 
           <div class="step-grid tilt-scene">
             <!-- Step 1 -->
-            <div class="step-card tilt-on-scroll">
+            <div class="step-card tilt-on-scroll glow-card">
               <div class="step-icon">
                 <svg viewBox="0 0 24 24"><path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.33 4 18V20H20V18C20 15.33 14.67 14 12 14Z"/></svg>
               </div>
@@ -294,7 +346,7 @@
             </div>
 
             <!-- Step 2 -->
-            <div class="step-card tilt-on-scroll">
+            <div class="step-card tilt-on-scroll glow-card">
               <div class="step-icon">
                 <svg viewBox="0 0 24 24"><path d="M15.5 14H14.71L14.43 13.73C15.44 12.56 16 11.04 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.04 16 12.56 15.44 13.73 14.43L14 14.71V15.5L19 20.5L20.5 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z"/></svg>
               </div>
@@ -303,7 +355,7 @@
             </div>
 
             <!-- Step 3 -->
-            <div class="step-card tilt-on-scroll">
+            <div class="step-card tilt-on-scroll glow-card">
               <div class="step-icon">
                 <svg viewBox="0 0 24 24"><path d="M20 15.5C18.8 15.5 17.5 15.3 16.4 14.9C16 14.8 15.6 14.9 15.3 15.2L13.1 17.4C10.3 15.9 8 13.7 6.5 10.9L8.7 8.7C9 8.4 9.1 8 9 7.6C8.6 6.5 8.4 5.2 8.4 4C8.4 3.4 8 3 7.4 3H4C3.4 3 3 3.4 3 4C3 13.4 10.6 21 20 21C20.6 21 21 20.6 21 20V16.6C21 16 20.6 15.5 20 15.5Z"/></svg>
               </div>
@@ -323,8 +375,8 @@
             <p>Since we don't handle payments or logistics directly, we focus our efforts entirely on verifying identities and crop quality to protect our community.</p>
           </div>
 
-          <div class="trust-grid">
-            <div class="trust-item">
+          <div class="trust-grid tilt-scene">
+            <div class="trust-item tilt-on-scroll glow-card">
               <div class="trust-item-icon">
                 <svg viewBox="0 0 24 24"><path d="M12 1L3 5V11C3 16.55 7.84 21.74 12 23C16.16 21.74 21 16.55 21 11V5L12 1ZM12 11.99H19C18.47 16.11 15.72 19.78 12 20.93V11.99H5V6.3L12 3.19V11.99Z"/></svg>
               </div>
@@ -332,7 +384,7 @@
               <p>All users authenticate with mobile OTP verification to eliminate bots and spam accounts.</p>
             </div>
             
-            <div class="trust-item">
+            <div class="trust-item tilt-on-scroll glow-card">
               <div class="trust-item-icon">
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
               </div>
@@ -340,7 +392,7 @@
               <p>Admin verification of farmer profiles, checking local land records or FPO registry data.</p>
             </div>
 
-            <div class="trust-item">
+            <div class="trust-item tilt-on-scroll glow-card">
               <div class="trust-item-icon">
                 <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9C5 13.17 9.42 18.66 11.24 20.76C11.64 21.22 12.37 21.22 12.77 20.76C14.58 18.66 19 13.17 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z"/></svg>
               </div>
@@ -348,7 +400,7 @@
               <p>Photos of harvests must contain metadata verification or geotagged farm coordinates.</p>
             </div>
 
-            <div class="trust-item">
+            <div class="trust-item tilt-on-scroll glow-card">
               <div class="trust-item-icon">
                 <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27Z"/></svg>
               </div>
@@ -381,8 +433,8 @@
               </div>
             </div>
           </div>
-          <div class="pilot-map-container">
-            <div class="map-card">
+          <div class="pilot-map-container tilt-scene">
+            <div class="map-card tilt-on-scroll glow-card">
               <h3>Onboarding Districts</h3>
               <ul>
                 <li><span>Salem District:</span> <span>Active</span></li>
@@ -398,10 +450,12 @@
 
       <!-- Call to Action Banner -->
       <div class="cta-banner">
-        <div class="container cta-banner-content">
-          <h2>Be Part of the First Wave</h2>
-          <p>We are actively onboarding farmers, cooperative societies, bulk kitchens, hotels, and retail brands. Register today to secure priority access to our verified network.</p>
-          <a href="#/contact" class="btn btn-accent">Join the Pilot Program</a>
+        <div class="container cta-banner-content tilt-scene">
+          <div class="tilt-on-scroll">
+            <h2 class="glow-heading">Be Part of the First Wave</h2>
+            <p>We are actively onboarding farmers, cooperative societies, bulk kitchens, hotels, and retail brands. Register today to secure priority access to our verified network.</p>
+            <a href="#/contact" class="btn btn-accent glow-cta">Join the Pilot Program</a>
+          </div>
         </div>
       </div>
     </section>
