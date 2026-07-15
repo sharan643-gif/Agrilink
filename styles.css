@@ -656,7 +656,7 @@ main {
   position: relative;
   text-align: center;
   background: var(--bg-card);
-  padding: 3rem 2rem;
+  padding: 2.5rem 2rem;
   border-radius: var(--border-radius);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
@@ -668,27 +668,7 @@ main {
   box-shadow: var(--shadow-md);
 }
 
-.step-number {
-  position: absolute;
-  top: -25px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50px;
-  height: 50px;
-  background-color: var(--primary);
-  color: var(--white);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 1.25rem;
-  box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3);
-  z-index: 2;
-}
-
 .step-icon {
-  margin-top: 1rem;
   margin-bottom: 1.5rem;
   color: var(--primary);
   font-size: 2.5rem;
@@ -4713,9 +4693,7 @@ html[data-theme="dark"] .notif-banner-close:hover {
 }
 
 .tilt-on-scroll {
-  transform-style: preserve-3d;
   will-change: transform;
-  backface-visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
