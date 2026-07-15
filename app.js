@@ -1705,3 +1705,194 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 });
+/* ====================================================================
+ * LG-EXT — Liquid Glass 27 extended component behavior
+ * Progressive enhancement for: FAB, notification banner dismiss,
+ * accordion disclosure, segmented control, section-level parallax,
+ * and horizontal carousel controls. Each guards for missing markup so
+ * pages that don't use a given component are unaffected.
+ * ==================================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+  const lgReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---- Notification banner dismiss ----
+  document.querySelectorAll('.notif-banner-close').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const banner = btn.closest('.notif-banner');
+      if (!banner) return;
+      banner.classList.add('lg-dismissing');
+      banner.addEventListener('animationend', () => banner.remove(), { once: true });
+      setTimeout(() => { if (banner.isConnected) banner.remove(); }, 500);
+    });
+  });
+
+  // ---- Accordion disclosure ----
+  document.querySelectorAll('.accordion').forEach((accordion) => {
+    const items = accordion.querySelectorAll('.accordion-item');
+    items.forEach((item) => {
+      const trigger = item.querySelector('.accordion-trigger');
+      const panel = item.querySelector('.accordion-panel-inner');
+      if (!trigger || !panel) return;
+      trigger.setAttribute('aria-expanded', item.classList.contains('open') ? 'true' : 'false');
+      trigger.addEventListener('click', () => {
+        const willOpen = !item.classList.contains('open');
+        // Single-open behavior within a group, like an iOS settings list.
+        items.forEach((other) => {
+          other.classList.remove('open');
+          const otherTrigger = other.querySelector('.accordion-trigger');
+          if (otherTrigger) otherTrigger.setAttribute('aria-expanded', 'false');
+        });
+        if (willOpen) {
+          item.classList.add('open');
+          trigger.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+  });
+
+  // ---- Segmented control ----
+  document.querySelectorAll('.segmented-control').forEach((control) => {
+    const options = Array.from(control.querySelectorAll('.segmented-option'));
+    const indicator = control.querySelector('.segmented-indicator');
+    if (!options.length || !indicator) return;
+
+    function moveIndicator(target, animate = true) {
+      const controlRect = control.getBoundingClientRect();
+      const rect = target.getBoundingClientRect();
+      indicator.style.transition = animate ? '' : 'none';
+      indicator.style.width = rect.width + 'px';
+      indicator.style.transform = `translateX(${rect.left - controlRect.left - 4}px)`;
+    }
+
+    const active = control.querySelector('.segmented-option.active') || options[0];
+    active.classList.add('active');
+    requestAnimationFrame(() => moveIndicator(active, false));
+
+    options.forEach((opt) => {
+      opt.addEventListener('click', () => {
+        options.forEach((o) => o.classList.remove('active'));
+        opt.classList.add('active');
+        moveIndicator(opt);
+        control.dispatchEvent(new CustomEvent('segmentchange', { detail: { value: opt.dataset.value || opt.textContent.trim() } }));
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      const current = control.querySelector('.segmented-option.active');
+      if (current) moveIndicator(current, false);
+    });
+  });
+
+  // ---- FAB ripple (reuses the existing .lg-ripple-host / .lg-ripple system) ----
+  document.querySelectorAll('.fab').forEach((fab) => {
+    fab.classList.add('lg-ripple-host');
+  });
+
+  // ---- Section-level parallax on scroll (desktop only, respects reduced motion) ----
+  if (!lgReducedMotion && window.matchMedia('(min-width: 900px)').matches) {
+    const parallaxSections = document.querySelectorAll('.parallax-section');
+    if (parallaxSections.length) {
+      let ticking = false;
+      const updateParallax = () => {
+        parallaxSections.forEach((section) => {
+          const rect = section.getBoundingClientRect();
+          const progress = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
+          const layers = section.querySelectorAll('.parallax-layer');
+          layers.forEach((layer, i) => {
+            const depth = (i + 1) * 18;
+            const y = (progress - 0.5) * depth;
+            layer.style.transform = `translateY(${y}px)`;
+          });
+        });
+        ticking = false;
+      };
+      window.addEventListener('scroll', () => {
+        if (!ticking) {
+          requestAnimationFrame(updateParallax);
+          ticking = true;
+        }
+      }, { passive: true });
+      updateParallax();
+    }
+  }
+
+  // ---- Carousel prev/next controls ----
+  document.querySelectorAll('[data-carousel]').forEach((wrap) => {
+    const track = wrap.querySelector('.carousel');
+    const prevBtn = wrap.querySelector('[data-carousel-prev]');
+    const nextBtn = wrap.querySelector('[data-carousel-next]');
+    if (!track) return;
+    const scrollByCard = (dir) => {
+      const card = track.querySelector('.carousel-card');
+      const amount = card ? card.getBoundingClientRect().width + 20 : 300;
+      track.scrollBy({ left: dir * amount, behavior: 'smooth' });
+    };
+    if (prevBtn) prevBtn.addEventListener('click', () => scrollByCard(-1));
+    if (nextBtn) nextBtn.addEventListener('click', () => scrollByCard(1));
+  });
+
+  // ---- Scroll-linked 3D tilt (Apple-style card depth) ----
+  // Cards marked .tilt-on-scroll rotate in 3D as they pass through the
+  // viewport: tilted back on the way in, flat when centered, tilted
+  // forward on the way out. Runs on a rAF-throttled scroll/resize
+  // listener and is skipped entirely under reduced-motion.
+  const tiltEls = document.querySelectorAll('.tilt-on-scroll');
+  if (tiltEls.length && !lgReducedMotion) {
+    const MAX_ROTATE_DEG = 14;
+    const MAX_TRANSLATE_Z = -60; // cards recede slightly at the edges
+    const MAX_SCALE_DROP = 0.06;
+
+    let tiltTicking = false;
+
+    const updateTilt = () => {
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      tiltEls.forEach((el) => {
+        // Let the entrance reveal (.lg-reveal / .lg-visible, added by the
+        // scroll-reveal observer above) finish its own fade-and-rise first;
+        // only take over with the inline tilt transform once a card has
+        // actually appeared, so the two animations don't fight.
+        if (el.classList.contains('lg-reveal') && !el.classList.contains('lg-visible')) {
+          return;
+        }
+        const rect = el.getBoundingClientRect();
+        const cardCenter = rect.top + rect.height / 2;
+        const viewportCenter = vh / 2;
+        // -1 when the card center is at the bottom edge, 0 when centered,
+        // +1 when it's at the top edge.
+        let progress = (viewportCenter - cardCenter) / viewportCenter;
+        progress = Math.max(-1, Math.min(1, progress));
+
+        const rotateX = progress * MAX_ROTATE_DEG;
+        const translateZ = Math.abs(progress) * MAX_TRANSLATE_Z;
+        const scale = 1 - Math.abs(progress) * MAX_SCALE_DROP;
+        const translateY = Math.abs(progress) * 6;
+
+        el.style.transform =
+          `perspective(1600px) rotateX(${rotateX.toFixed(2)}deg) ` +
+          `translateZ(${translateZ.toFixed(1)}px) translateY(${translateY.toFixed(1)}px) ` +
+          `scale(${scale.toFixed(3)})`;
+      });
+      tiltTicking = false;
+    };
+
+    const requestTiltUpdate = () => {
+      if (!tiltTicking) {
+        requestAnimationFrame(updateTilt);
+        tiltTicking = true;
+      }
+    };
+
+    window.addEventListener('scroll', requestTiltUpdate, { passive: true });
+    window.addEventListener('resize', requestTiltUpdate);
+    updateTilt();
+  }
+
+  // ---- Icon morph helper: toggling `.swapped` on any `.icon-morph` element ----
+  document.querySelectorAll('[data-icon-morph-target]').forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      const targetSelector = trigger.getAttribute('data-icon-morph-target');
+      const target = document.querySelector(targetSelector);
+      if (target) target.classList.toggle('swapped');
+    });
+  });
+});
