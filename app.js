@@ -76,6 +76,170 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   })();
 
+  // ==================== LIQUID GLASS 27 — MOTION LAYER ====================
+  // Decorative/motion only — never touches routing, data fetching, forms,
+  // or auth below. Each piece is defensive: a missing element or an older
+  // browser just means that one effect quietly doesn't run.
+  const lgPrefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const lgHasHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
+
+  // ---- Ripple micro-interaction on buttons, nav, cards, toggle ----
+  (function initLiquidGlassRipple() {
+    if (lgPrefersReducedMotion) return;
+
+    const RIPPLE_SELECTOR = '.btn, .nav-link, .nav-cta, .theme-toggle, .directory-card, .auth-card, .step-card, .modal-close';
+
+    document.addEventListener('pointerdown', (e) => {
+      const host = e.target.closest ? e.target.closest(RIPPLE_SELECTOR) : null;
+      if (!host) return;
+
+      host.classList.add('lg-ripple-host');
+
+      const rect = host.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 1.6 || 60;
+      const x = (typeof e.clientX === 'number' ? e.clientX : rect.left + rect.width / 2) - rect.left;
+      const y = (typeof e.clientY === 'number' ? e.clientY : rect.top + rect.height / 2) - rect.top;
+
+      const ripple = document.createElement('span');
+      ripple.className = 'lg-ripple';
+      ripple.style.width = size + 'px';
+      ripple.style.height = size + 'px';
+      ripple.style.left = (x - size / 2) + 'px';
+      ripple.style.top = (y - size / 2) + 'px';
+
+      host.appendChild(ripple);
+      const cleanupRipple = () => ripple.remove();
+      ripple.addEventListener('animationend', cleanupRipple);
+      setTimeout(() => { if (ripple.isConnected) cleanupRipple(); }, 800);
+    }, { passive: true });
+  })();
+
+  // ---- Theme-switch circular wipe ----
+  // Doesn't decide the theme (initThemeToggle above already owns that) —
+  // just watches data-theme flip and plays a soft radial flourish centered
+  // on wherever the toggle was pressed.
+  (function initLiquidGlassThemeWipe() {
+    if (lgPrefersReducedMotion || !('MutationObserver' in window)) return;
+
+    let originX = '50%';
+    let originY = '50%';
+
+    document.querySelectorAll('.theme-toggle').forEach((btn) => {
+      btn.addEventListener('pointerdown', (e) => {
+        const rect = btn.getBoundingClientRect();
+        const clientX = typeof e.clientX === 'number' ? e.clientX : rect.left + rect.width / 2;
+        const clientY = typeof e.clientY === 'number' ? e.clientY : rect.top + rect.height / 2;
+        originX = (clientX / window.innerWidth * 100) + '%';
+        originY = (clientY / window.innerHeight * 100) + '%';
+      });
+    });
+
+    const observer = new MutationObserver(() => spawnWipe(originX, originY));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+    function spawnWipe(x, y) {
+      const el = document.createElement('div');
+      el.className = 'lg-wipe';
+      el.style.setProperty('--lg-x', x);
+      el.style.setProperty('--lg-y', y);
+      document.body.appendChild(el);
+      const cleanupWipe = () => el.remove();
+      el.addEventListener('animationend', cleanupWipe);
+      setTimeout(() => { if (el.isConnected) cleanupWipe(); }, 900);
+    }
+  })();
+
+  // ---- Hero ambient parallax + dust particles ----
+  // The .lg-orb elements themselves live directly in index.html now; this
+  // only adds pointer-parallax drift on desktop and generates the drifting
+  // dust particles (randomized per load, so JS-generated rather than static).
+  (function initLiquidGlassHeroAtmosphere() {
+    const hero = document.querySelector('#page-home .hero-section');
+    if (!hero) return;
+
+    if (lgHasHover) {
+      hero.addEventListener('mousemove', (e) => {
+        const rect = hero.getBoundingClientRect();
+        const px = (e.clientX - rect.left) / rect.width - 0.5;
+        const py = (e.clientY - rect.top) / rect.height - 0.5;
+        hero.querySelectorAll('.lg-orb').forEach((orb, i) => {
+          const depth = (i + 1) * 9;
+          orb.style.transform = `translate(${(px * depth).toFixed(1)}px, ${(py * depth).toFixed(1)}px)`;
+        });
+      });
+    }
+
+    if (lgPrefersReducedMotion) return;
+
+    const PARTICLE_COUNT = 14;
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const p = document.createElement('div');
+      p.className = 'lg-particle';
+      const duration = 7 + Math.random() * 7;
+      p.style.left = (Math.random() * 100) + '%';
+      p.style.bottom = (Math.random() * 30) + '%';
+      p.style.animationDuration = duration + 's';
+      p.style.animationDelay = '-' + (Math.random() * duration) + 's';
+      p.style.opacity = String(0.25 + Math.random() * 0.35);
+      hero.appendChild(p);
+    }
+  })();
+
+  // ---- Magnetic pull on primary CTAs ----
+  (function initLiquidGlassMagneticCTA() {
+    if (lgPrefersReducedMotion || !lgHasHover) return;
+
+    document.querySelectorAll('.hero-buttons .btn, .nav-cta').forEach((btn) => {
+      btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        const x = (e.clientX - rect.left - rect.width / 2) * 0.18;
+        const y = (e.clientY - rect.top - rect.height / 2) * 0.35;
+        btn.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.transform = '';
+      });
+    });
+  })();
+
+  // ---- Scroll-reveal for cards ----
+  // Covers static cards (step-card, auth-card) present at load, and
+  // dynamically-rendered listing cards (.directory-card) added later by
+  // fetchListings() further down, via a MutationObserver on the grids.
+  (function initLiquidGlassScrollReveal() {
+    if (!('IntersectionObserver' in window)) return;
+
+    const REVEAL_SELECTOR = '.step-card, .auth-card, .directory-card';
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('lg-visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+    function observeAll(root) {
+      root.querySelectorAll(REVEAL_SELECTOR).forEach((el) => {
+        if (el.dataset.lgObserved) return;
+        el.dataset.lgObserved = 'true';
+        if (!lgPrefersReducedMotion) el.classList.add('lg-reveal');
+        io.observe(el);
+      });
+    }
+
+    observeAll(document);
+
+    if (!('MutationObserver' in window)) return;
+    ['directory-grid', 'farmers-listing-grid'].forEach((id) => {
+      const grid = document.getElementById(id);
+      if (!grid) return;
+      const mo = new MutationObserver(() => observeAll(grid));
+      mo.observe(grid, { childList: true });
+    });
+  })();
+
   // ==================== STATE & BACKEND CONFIG ====================
   // We now talk to Supabase directly from the browser instead of going
   // through the Express server (server.js / API_BASE_URL). Supabase is
@@ -195,6 +359,8 @@ document.addEventListener('DOMContentLoaded', () => {
     '/buyer-signin': 'page-buyer-signin',
     '/farmer-register': 'page-farmer-register',
     '/buyer-register': 'page-buyer-register',
+    '/farmer-forgot-password': 'page-farmer-forgot-password',
+    '/buyer-forgot-password': 'page-buyer-forgot-password',
     '/profile': 'page-profile'
   };
 
@@ -1077,6 +1243,178 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+
+  // ==================== FORGOT PASSWORD (EMAIL OTP) SYSTEM ====================
+  // Flow for both farmer & buyer:
+  //   1. User enters email -> supabaseClient.auth.resetPasswordForEmail(email)
+  //      This triggers Supabase's "Reset Password" email. For this to arrive as a
+  //      6-digit OTP (instead of a magic link), the "Reset Password" template in
+  //      Supabase Dashboard > Authentication > Email Templates must use {{ .Token }}
+  //      instead of {{ .ConfirmationURL }}.
+  //   2. User enters the OTP + new password -> supabaseClient.auth.verifyOtp({
+  //        email, token, type: 'recovery'
+  //      }) verifies the code and starts a temporary recovery session.
+  //   3. supabaseClient.auth.updateUser({ password }) sets the new password while
+  //      that recovery session is active, then we sign out so they log in fresh.
+  // No custom SQL table is required — Supabase's built-in auth schema manages the
+  // OTP/token lifecycle internally.
+  function setupForgotPasswordFlow(role) {
+    const requestForm = document.getElementById(`${role}-forgot-request-form`);
+    const resetForm = document.getElementById(`${role}-forgot-reset-form`);
+    if (!requestForm || !resetForm) return;
+
+    const emailInput = document.getElementById(`${role}-forgot-email`);
+    const otpInput = document.getElementById(`${role}-otp`);
+    const newPasswordInput = document.getElementById(`${role}-new-password`);
+    const confirmPasswordInput = document.getElementById(`${role}-confirm-new-password`);
+    const resendLink = document.getElementById(`${role}-resend-otp`);
+    const changeEmailLink = document.getElementById(`${role}-change-email`);
+
+    function resetToStepOne() {
+      resetForm.style.display = 'none';
+      requestForm.style.display = '';
+      otpInput.value = '';
+      newPasswordInput.value = '';
+      confirmPasswordInput.value = '';
+    }
+
+    // Step 1: Send OTP
+    requestForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = emailInput.value.trim();
+      const submitBtn = requestForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+
+      if (!email) {
+        showAuthMessage(requestForm, 'Please enter your registered email.', 'error');
+        return;
+      }
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="spinner"></span> Sending OTP...`;
+
+        if (!supabaseClient) {
+          throw new Error('Supabase client was not initialized properly.');
+        }
+
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+        if (error) throw error;
+
+        resetForm.dataset.email = email;
+        showAuthMessage(requestForm, 'OTP sent! Check your email inbox.', 'success');
+
+        setTimeout(() => {
+          requestForm.style.display = 'none';
+          resetForm.style.display = '';
+        }, 900);
+
+      } catch (err) {
+        console.error(`${role} forgot-password request error:`, err.message);
+        showAuthMessage(requestForm, err.message || 'Could not send OTP. Please try again.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    });
+
+    // Step 2: Verify OTP + set new password
+    resetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = resetForm.dataset.email;
+      const otp = otpInput.value.trim();
+      const newPassword = newPasswordInput.value;
+      const confirmPassword = confirmPasswordInput.value;
+      const submitBtn = resetForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+
+      if (!otp || !newPassword || !confirmPassword) {
+        showAuthMessage(resetForm, 'Please fill in all fields.', 'error');
+        return;
+      }
+      if (!validatePasswords(resetForm, newPassword, confirmPassword)) return;
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="spinner"></span> Verifying...`;
+
+        if (!supabaseClient) {
+          throw new Error('Supabase client was not initialized properly.');
+        }
+
+        const { error: verifyError } = await supabaseClient.auth.verifyOtp({
+          email: email,
+          token: otp,
+          type: 'recovery'
+        });
+        if (verifyError) throw verifyError;
+
+        const { error: updateError } = await supabaseClient.auth.updateUser({
+          password: newPassword
+        });
+        if (updateError) throw updateError;
+
+        showAuthMessage(resetForm, 'Password reset successful! Redirecting to sign in...', 'success');
+
+        // Drop the temporary recovery session so the user signs in fresh.
+        await supabaseClient.auth.signOut();
+
+        setTimeout(() => {
+          window.location.hash = `#/${role}-signin`;
+        }, 1500);
+
+      } catch (err) {
+        console.error(`${role} password reset error:`, err.message);
+        showAuthMessage(resetForm, err.message || 'Invalid or expired OTP. Please try again.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    });
+
+    // Resend OTP
+    if (resendLink) {
+      resendLink.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const email = resetForm.dataset.email;
+        if (!email || !supabaseClient) return;
+
+        const originalText = resendLink.textContent;
+        try {
+          resendLink.textContent = 'Sending...';
+          const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+          if (error) throw error;
+          showAuthMessage(resetForm, 'A new OTP has been sent.', 'success');
+        } catch (err) {
+          showAuthMessage(resetForm, err.message || 'Could not resend OTP.', 'error');
+        } finally {
+          resendLink.textContent = originalText;
+        }
+      });
+    }
+
+    // Let the user go back and correct their email
+    if (changeEmailLink) {
+      changeEmailLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        resetToStepOne();
+      });
+    }
+
+    // Reset the flow back to step 1 whenever this page is (re)entered
+    document.addEventListener('hashchange', () => {
+      const hash = window.location.hash.slice(1);
+      if (hash === `/${role}-forgot-password`) {
+        resetToStepOne();
+      }
+    });
+  }
+
+  setupForgotPasswordFlow('farmer');
+  setupForgotPasswordFlow('buyer');
 
 
   // ==================== SUPABASE REGISTRATION (SIGN-UP) SYSTEM ====================
