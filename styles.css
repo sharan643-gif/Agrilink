@@ -4722,3 +4722,278 @@ html[data-theme="dark"] .notif-banner-close:hover {
     transition: none !important;
   }
 }
+
+/* ====================================================================
+ * LIQUID GLASS 29 — SCROLL-DEPTH & AMBIENT GLOW LAYER
+ * Adds a top-of-page scroll progress beam, a pointer-tracked spotlight
+ * glow for card surfaces (.glow-card, driven by --spot-x/--spot-y set in
+ * app.js), a breathing halo for primary CTAs (.glow-cta), and a soft
+ * animated gradient treatment for hero/section headlines (.glow-heading).
+ * Every effect here is purely additive on top of the existing tilt/reveal
+ * system above — nothing here changes layout, only depth and light.
+ * All of it is skipped or flattened under prefers-reduced-motion.
+ * ==================================================================== */
+
+/* ---- 1. Scroll progress beam ---- */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 9999;
+  background: transparent;
+  pointer-events: none;
+}
+
+.scroll-progress-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary));
+  background-size: 200% 100%;
+  box-shadow: 0 0 12px 1px rgba(var(--accent-glow-color), 0.75), 0 0 3px rgba(var(--accent-glow-color), 0.9);
+  transition: width 0.12s linear;
+  animation: lgProgressSheen 6s linear infinite;
+}
+
+@keyframes lgProgressSheen {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-progress-fill { transition: none; animation: none; }
+}
+
+/* ---- 2. Pointer-tracked spotlight glow for cards ---- */
+/* Host must be position:relative (all target cards already are, via
+   existing rules) and get overflow set so the glow clips to its shape. */
+.glow-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  --spot-x: 50%;
+  --spot-y: 30%;
+  --spot-opacity: 0;
+}
+
+.glow-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    360px circle at var(--spot-x) var(--spot-y),
+    rgba(var(--accent-glow-color), 0.16),
+    rgba(var(--accent-glow-color), 0.05) 42%,
+    transparent 70%
+  );
+  opacity: var(--spot-opacity);
+  transition: opacity 0.35s ease;
+}
+
+/* Keep the card's own content/icons above the glow overlay */
+.glow-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (hover: hover) {
+  .glow-card:hover { --spot-opacity: 1; }
+}
+
+/* Touch devices get a gentle static glow instead of a cursor-follow spot */
+@media (hover: none) {
+  .glow-card::after { --spot-opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-card::after { transition: none; }
+}
+
+/* Thin animated rim-light that switches on once a card has scrolled into
+   view (.lg-visible is added by the IntersectionObserver in app.js) */
+.glow-card.lg-visible {
+  box-shadow: var(--depth-shadow), 0 0 0 1px rgba(var(--accent-glow-color), 0.14);
+}
+
+/* ---- 3. Breathing halo for primary calls-to-action ---- */
+.glow-cta {
+  position: relative;
+  z-index: 1;
+}
+
+.glow-cta::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(var(--accent-glow-color), 0.55), transparent 70%);
+  opacity: 0.55;
+  filter: blur(10px);
+  animation: lgCtaBreathe 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes lgCtaBreathe {
+  0%, 100% { opacity: 0.4; transform: scale(0.96); }
+  50%      { opacity: 0.85; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-cta::before { animation: none; opacity: 0.5; transform: none; }
+}
+
+/* ---- 4. Glowing gradient headline treatment ---- */
+.glow-heading {
+  background: linear-gradient(100deg, var(--primary) 0%, var(--accent) 45%, var(--primary) 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 26px rgba(var(--accent-glow-color), 0.35);
+  animation: lgHeadingSheen 7s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes lgHeadingSheen {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-heading { animation: none; }
+}
+
+/* ---- 5. Deeper 3D stage for the newer tilt targets ---- */
+/* .tilt-scene / .tilt-on-scroll already exist above; these selectors just
+   make sure the additional grids we wired up (problem/solution, use-case,
+   trust, pilot map, CTA banner) sit in their own 3D stage without fighting
+   existing grid gap/columns rules. */
+.problem-solution-grid.tilt-scene,
+.use-cases-grid.tilt-scene,
+.trust-grid.tilt-scene,
+.pilot-map-container.tilt-scene,
+.cta-banner-content.tilt-scene {
+  perspective: 1600px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .problem-solution-grid .tilt-on-scroll,
+  .use-cases-grid .tilt-on-scroll,
+  .trust-grid .tilt-on-scroll,
+  .pilot-map-container .tilt-on-scroll,
+  .cta-banner-content .tilt-on-scroll {
+    transform: none !important;
+  }
+}
+/* ==========================================================================
+   INTRO / SPLASH ANIMATION
+   Logo scales+fades in -> brand name fades in -> brief hold -> both scale
+   up slightly and fade out while the overlay itself fades, revealing the
+   homepage underneath with a soft slide-up. Runtime ~2.3s total, matched
+   to the setTimeout removal in index.html. Respects prefers-reduced-motion.
+   ========================================================================== */
+
+#intro-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  background: var(--bg-warm);
+  animation: introOverlayFade 0.5s ease 1.8s forwards;
+}
+
+.intro-splash__mark {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  box-shadow: 0 8px 28px -6px rgba(var(--accent-glow-color), 0.5);
+  opacity: 0;
+  transform: scale(0.6);
+  animation:
+    introLogoIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards,
+    introGroupOut 0.4s ease 1.6s forwards;
+}
+
+.intro-splash__logo {
+  width: 38px;
+  height: 38px;
+  fill: var(--white);
+}
+
+.intro-splash__name {
+  font-family: var(--font-heading, inherit);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text-primary, var(--primary-dark));
+  opacity: 0;
+  transform: translateY(6px);
+  animation:
+    introNameIn 0.5s ease 0.45s forwards,
+    introGroupOut 0.4s ease 1.6s forwards;
+}
+
+@keyframes introLogoIn {
+  0%   { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes introNameIn {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Shared "hold, then scale up slightly + fade" for both logo mark and name */
+@keyframes introGroupOut {
+  0%   { opacity: 1; transform: scale(1)    translateY(0); }
+  100% { opacity: 0; transform: scale(1.08) translateY(0); }
+}
+
+@keyframes introOverlayFade {
+  0%   { opacity: 1; visibility: visible; }
+  100% { opacity: 0; visibility: hidden; }
+}
+
+/* While the intro is active, keep the homepage hidden (no transition) so
+   it doesn't peek out from behind the overlay. As soon as intro-active is
+   removed (right when the overlay finishes fading), main/header smoothly
+   fade + slide up into place for a seamless hand-off. This transition is
+   scoped to the intro state only, so it never lingers on later, unrelated
+   opacity changes (e.g. SPA route swaps, toasts, etc). */
+html.intro-active body > main,
+html.intro-active #header {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: none;
+}
+
+html:not(.intro-active) body > main,
+html:not(.intro-active) #header {
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #intro-splash,
+  .intro-splash__mark,
+  .intro-splash__name {
+    animation: none !important;
+  }
+  html.intro-active body > main,
+  html.intro-active #header {
+    opacity: 1;
+    transform: none;
+  }
+}
