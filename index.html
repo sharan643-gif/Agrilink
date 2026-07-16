@@ -1613,7 +1613,7 @@
               </svg>
             </div>
             <h1 class="auth-title">Reset Farmer Password</h1>
-            <p class="auth-subtitle">We'll email you a 6-digit code to verify it's you</p>
+            <p class="auth-subtitle">We'll email you a verification link</p>
           </div>
 
           <!-- Step 1: Request OTP -->
@@ -1622,14 +1622,14 @@
               <label for="farmer-forgot-email" class="auth-label">Registered Email</label>
               <input type="email" id="farmer-forgot-email" class="auth-input" placeholder="farmer@village.com" required autocomplete="username">
             </div>
-            <button type="submit" class="auth-btn farmer-btn">Send OTP</button>
+            <button type="submit" class="auth-btn farmer-btn">Send verification link</button>
           </form>
 
           <!-- Step 2: Verify OTP & set new password (hidden until OTP is sent) -->
           <form id="farmer-forgot-reset-form" novalidate style="display:none;">
             <div class="auth-form-group">
-              <label for="farmer-otp" class="auth-label">Enter 6-Digit OTP</label>
-              <input type="text" id="farmer-otp" class="auth-input" placeholder="123456" required maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
+              <label for="farmer-otp" class="auth-label">Enter 8-Digit OTP</label>
+              <input type="text" id="farmer-otp" class="auth-input" placeholder="12345678" required maxlength="8" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
             </div>
             <div class="auth-form-group">
               <label for="farmer-new-password" class="auth-label">New Password</label>
@@ -1641,7 +1641,7 @@
             </div>
             <button type="submit" class="auth-btn farmer-btn">Reset Password</button>
             <p style="margin-top:14px; font-size:0.85rem; text-align:center;">
-              Didn't get a code? <a href="#" id="farmer-resend-otp">Resend OTP</a>
+              Didn't get a code? <a href="#" id="farmer-resend-otp">Resend verification link</a>
               &nbsp;·&nbsp;
               <a href="#" id="farmer-change-email">Use a different email</a>
             </p>
@@ -1673,7 +1673,7 @@
               </svg>
             </div>
             <h1 class="auth-title">Reset Buyer Password</h1>
-            <p class="auth-subtitle">We'll email you a 6-digit code to verify it's you</p>
+            <p class="auth-subtitle">We'll email you a verification link</p>
           </div>
 
           <!-- Step 1: Request OTP -->
@@ -1682,14 +1682,14 @@
               <label for="buyer-forgot-email" class="auth-label">Corporate Email</label>
               <input type="email" id="buyer-forgot-email" class="auth-input" placeholder="buyer@corporate.com" required autocomplete="username">
             </div>
-            <button type="submit" class="auth-btn buyer-btn">Send OTP</button>
+            <button type="submit" class="auth-btn buyer-btn">Send verification link</button>
           </form>
 
           <!-- Step 2: Verify OTP & set new password (hidden until OTP is sent) -->
           <form id="buyer-forgot-reset-form" novalidate style="display:none;">
             <div class="auth-form-group">
-              <label for="buyer-otp" class="auth-label">Enter 6-Digit OTP</label>
-              <input type="text" id="buyer-otp" class="auth-input" placeholder="123456" required maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
+              <label for="buyer-otp" class="auth-label">Enter 8-Digit OTP</label>
+              <input type="text" id="buyer-otp" class="auth-input" placeholder="12345678" required maxlength="8" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
             </div>
             <div class="auth-form-group">
               <label for="buyer-new-password" class="auth-label">New Password</label>
@@ -1701,7 +1701,7 @@
             </div>
             <button type="submit" class="auth-btn buyer-btn">Reset Password</button>
             <p style="margin-top:14px; font-size:0.85rem; text-align:center;">
-              Didn't get a code? <a href="#" id="buyer-resend-otp">Resend OTP</a>
+              Didn't get a code? <a href="#" id="buyer-resend-otp">Resend verification link</a>
               &nbsp;·&nbsp;
               <a href="#" id="buyer-change-email">Use a different email</a>
             </p>
