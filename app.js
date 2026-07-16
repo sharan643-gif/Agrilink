@@ -53,7 +53,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const TILT_SELECTOR = '.directory-card, .auth-card';
     const MAX_TILT_DEG = 6;
 
-    document.addEventListener('mousemove', (e) => {
+    // Raw mousemove can fire far faster than the screen can paint (up to
+    // several hundred times a second on a fast mouse). Reading
+    // getBoundingClientRect() and writing a transform on every single event
+    // forces layout/paint work that lower-end devices can't keep up with —
+    // that's what reads as "janky". Instead we just remember the latest
+    // event and do the actual measure+write once per animation frame via
+    // rAF, capping the work to the display's real refresh rate no matter
+    // how fast the mouse reports events.
+    let pendingTiltEvent = null;
+    let tiltRAFQueued = false;
+
+    const applyTilt = () => {
+      tiltRAFQueued = false;
+      const e = pendingTiltEvent;
+      if (!e) return;
       const card = e.target.closest ? e.target.closest(TILT_SELECTOR) : null;
       if (!card) return;
 
@@ -65,7 +79,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const rotateX = (0.5 - py) * (MAX_TILT_DEG * 2);
 
       card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
-    });
+    };
+
+    document.addEventListener('mousemove', (e) => {
+      pendingTiltEvent = e;
+      if (!tiltRAFQueued) {
+        tiltRAFQueued = true;
+        requestAnimationFrame(applyTilt);
+      }
+    }, { passive: true });
 
     document.addEventListener('mouseout', (e) => {
       const card = e.target.closest ? e.target.closest(TILT_SELECTOR) : null;
@@ -158,15 +180,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!hero) return;
 
     if (lgHasHover) {
-      hero.addEventListener('mousemove', (e) => {
+      const orbs = hero.querySelectorAll('.lg-orb'); // queried once, not on every mousemove
+      let pendingOrbEvent = null;
+      let orbRAFQueued = false;
+
+      const applyOrbParallax = () => {
+        orbRAFQueued = false;
+        const e = pendingOrbEvent;
+        if (!e) return;
         const rect = hero.getBoundingClientRect();
         const px = (e.clientX - rect.left) / rect.width - 0.5;
         const py = (e.clientY - rect.top) / rect.height - 0.5;
-        hero.querySelectorAll('.lg-orb').forEach((orb, i) => {
+        orbs.forEach((orb, i) => {
           const depth = (i + 1) * 9;
           orb.style.transform = `translate(${(px * depth).toFixed(1)}px, ${(py * depth).toFixed(1)}px)`;
         });
-      });
+      };
+
+      // Same fix as the tilt effect above: batch to one rAF-synced update
+      // per frame instead of doing a layout read + N style writes on every
+      // raw mousemove event.
+      hero.addEventListener('mousemove', (e) => {
+        pendingOrbEvent = e;
+        if (!orbRAFQueued) {
+          orbRAFQueued = true;
+          requestAnimationFrame(applyOrbParallax);
+        }
+      }, { passive: true });
     }
 
     if (lgPrefersReducedMotion) return;
@@ -190,26 +230,48 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lgPrefersReducedMotion || !lgHasHover) return;
 
     document.querySelectorAll('.hero-buttons .btn, .nav-cta').forEach((btn) => {
-      btn.addEventListener('mousemove', (e) => {
+      // Same rAF-batching fix as the effects above: cap the measure+write
+      // work to one per frame instead of once per raw mousemove event.
+      let pendingMagnetEvent = null;
+      let magnetRAFQueued = false;
+
+      const applyMagnet = () => {
+        magnetRAFQueued = false;
+        const e = pendingMagnetEvent;
+        if (!e) return;
         const rect = btn.getBoundingClientRect();
         const x = (e.clientX - rect.left - rect.width / 2) * 0.18;
         const y = (e.clientY - rect.top - rect.height / 2) * 0.35;
         btn.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-      });
+      };
+
+      btn.addEventListener('mousemove', (e) => {
+        pendingMagnetEvent = e;
+        if (!magnetRAFQueued) {
+          magnetRAFQueued = true;
+          requestAnimationFrame(applyMagnet);
+        }
+      }, { passive: true });
       btn.addEventListener('mouseleave', () => {
+        pendingMagnetEvent = null;
         btn.style.transform = '';
       });
     });
   })();
 
-  // ---- Scroll-reveal for cards ----
+  // ---- Scroll-reveal for cards + section headers/stats (bigger entrance) ----
   // Covers static cards (step-card, auth-card) present at load, and
   // dynamically-rendered listing cards (.directory-card) added later by
   // fetchListings() further down, via a MutationObserver on the grids.
+  // Section headers (title/subtitle/intro paragraph groups) and stat blocks
+  // get the bigger ".lg-reveal-big" treatment — more scale + a blur-in —
+  // since they're page-level moments rather than repeated grid items.
   (function initLiquidGlassScrollReveal() {
     if (!('IntersectionObserver' in window)) return;
 
-    const REVEAL_SELECTOR = '.step-card, .auth-card, .directory-card, .prop-card, .use-case-box, .trust-item, .map-card, .pilot-text, .footer-col';
+    const CARD_REVEAL_SELECTOR = '.step-card, .auth-card, .directory-card, .prop-card, .use-case-box, .trust-item, .map-card, .pilot-text, .footer-col';
+    const BIG_REVEAL_SELECTOR = '.section-header, .stat-item';
+    const REVEAL_SELECTOR = `${CARD_REVEAL_SELECTOR}, ${BIG_REVEAL_SELECTOR}`;
 
     const io = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
@@ -225,7 +287,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el.dataset.lgObserved) return;
         el.dataset.lgObserved = 'true';
         if (!lgPrefersReducedMotion) {
-          el.classList.add('lg-reveal');
+          const isBig = el.matches(BIG_REVEAL_SELECTOR);
+          el.classList.add(isBig ? 'lg-reveal-big' : 'lg-reveal');
           // Stagger cards that share a parent (grids, step rows, etc.) so
           // they fade up one after another instead of all at once — mirrors
           // the staggered card entrance from the reference animation.
@@ -572,13 +635,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ==================== HEADER SCROLL EFFECT ====================
   if (header) {
+    let headerTicking = false;
+    const updateHeaderScrolled = () => {
+      header.classList.toggle('scrolled', window.scrollY > 40);
+      headerTicking = false;
+    };
+    // passive + rAF-batched, matching the other scroll listeners in this
+    // file, so the browser never has to wait on this handler to decide
+    // whether it can start scrolling.
     window.addEventListener('scroll', () => {
-      if (window.scrollY > 40) {
-        header.classList.add('scrolled');
-      } else {
-        header.classList.remove('scrolled');
+      if (!headerTicking) {
+        headerTicking = true;
+        requestAnimationFrame(updateHeaderScrolled);
       }
-    });
+    }, { passive: true });
   }
 
 
@@ -1996,6 +2066,36 @@ document.addEventListener('DOMContentLoaded', () => {
         ticking = true;
       }
     }, { passive: true });
+  })();
+
+  // ---- Pause off-screen paint-heavy ambient animations ----
+  // Most of the decorative motion in this file (orbs, sheens, tilt, parallax)
+  // animates `transform`/`opacity`, which the browser can run on the
+  // compositor thread — cheap, and doesn't get janky under load. A handful
+  // of elements instead animate `background-position` (the wallpaper
+  // "breathe", the hero dust drift, the gradient-text heading sheen, the
+  // scroll-progress bar sheen). background-position can't be composited, so
+  // the browser has to repaint that element on *every frame* the animation
+  // is running — and by default it keeps running even while the element is
+  // scrolled miles off-screen or on a page the user isn't looking at. On
+  // slower/integrated GPUs those constant off-screen repaints are a real,
+  // measurable source of jank elsewhere on the page. Pausing them via
+  // IntersectionObserver whenever they're not visible removes that cost
+  // entirely with no visible difference, since nobody's looking anyway.
+  (function initPauseOffscreenAnimations() {
+    if (lgPrefersReducedMotion || !('IntersectionObserver' in window)) return;
+
+    const PAINT_HEAVY_SELECTOR = '#home-hero, .hero-dust, .glow-heading, .scroll-progress-fill';
+    const targets = document.querySelectorAll(PAINT_HEAVY_SELECTOR);
+    if (!targets.length) return;
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        entry.target.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
+      });
+    }, { threshold: 0 });
+
+    targets.forEach((el) => io.observe(el));
   })();
 
   // ---- Icon morph helper: toggling `.swapped` on any `.icon-morph` element ----
