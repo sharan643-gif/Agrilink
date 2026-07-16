@@ -210,6 +210,10 @@ header.scrolled .nav-container {
   flex-shrink: 0;
 }
 
+.logo-text {
+  line-height: 1;
+}
+
 /* Desktop segmented pill nav */
 .nav-scroll {
   flex: 1;
@@ -390,7 +394,7 @@ main {
 
 .page-view {
   display: none;
-  animation: fadeIn var(--transition-slow) forwards;
+  animation: fadeIn 0.65s var(--lg-spring-soft, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
 }
 
 .page-view.active {
@@ -400,11 +404,19 @@ main {
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(15px);
+    transform: translateY(28px) scale(0.98);
+    filter: blur(4px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-view {
+    animation: none;
   }
 }
 
@@ -1087,11 +1099,31 @@ footer {
 
 .directory-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 2rem;
   margin-top: 3rem;
   margin-bottom: 3rem;
   perspective: 1200px;
+}
+
+/* 320px minmax was wider than the available inner width on most phones
+   (viewport minus the .container's 2rem side padding), which forced the
+   grid to overflow and get clipped by body's overflow-x:hidden — the
+   "half-cut card" bug. 280px fits real phone widths; the breakpoints
+   below pin an explicit column count at each size so cards never rely
+   on auto-fill guessing wrong and spilling off-screen. */
+@media (max-width: 900px) {
+  .directory-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .directory-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
 }
 
 /* REAL CROP/FARMER CARD */
@@ -1128,6 +1160,48 @@ footer {
 
 .directory-card:hover .card-image-box img {
   transform: scale(1.05);
+}
+
+.results-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.results-header-title {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  margin: 0;
+}
+
+.results-header-badge {
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  /* Below this width the badge no longer fits next to the title, so stack
+     them instead of letting flex-wrap decide — and pin both to the same
+     left edge explicitly rather than leaving it to whatever space-between
+     does with a lone wrapped item. */
+  .results-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .results-header-badge {
+    white-space: normal;
+  }
 }
 
 .verification-badge {
@@ -1270,13 +1344,18 @@ footer {
   align-items: center;
   justify-content: center;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity var(--transition-normal);
+  transition: opacity 0.35s var(--lg-spring-soft, ease),
+              visibility 0s linear 0.35s;
 }
 
 .modal-overlay.active {
   opacity: 1;
+  visibility: visible;
   pointer-events: all;
+  transition: opacity 0.35s var(--lg-spring-soft, ease),
+              visibility 0s linear 0s;
 }
 
 .modal-box {
@@ -1284,15 +1363,49 @@ footer {
   border-radius: var(--border-radius);
   max-width: 500px;
   width: 90%;
+  max-height: 88vh;
+  overflow-y: auto;
   padding: 2.5rem;
   box-shadow: var(--shadow-lg);
-  transform: translateY(30px);
-  transition: transform var(--transition-normal);
+  transform: translateY(30px) scale(0.94);
+  opacity: 0;
+  transition: transform 0.45s var(--lg-spring, cubic-bezier(0.34, 1.56, 0.64, 1)),
+              opacity 0.35s var(--lg-spring-soft, ease);
   position: relative;
 }
 
 .modal-overlay.active .modal-box {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+/* Once the box has settled in, its contents ease up into place a beat
+   later — reads as one continuous motion instead of the whole card just
+   appearing fully-formed. The close button is excluded so it's always
+   available immediately. */
+.modal-box > *:not(.modal-close) {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.modal-overlay.active .modal-box > *:not(.modal-close) {
+  opacity: 1;
   transform: translateY(0);
+}
+
+.modal-overlay.active .modal-header { transition-delay: 0.08s; }
+.modal-overlay.active .modal-details-list { transition-delay: 0.14s; }
+.modal-overlay.active .modal-actions { transition-delay: 0.2s; }
+.modal-overlay.active .disclaimer-text { transition-delay: 0.26s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,
+  .modal-box,
+  .modal-box > *:not(.modal-close) {
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 .modal-close {
@@ -2634,6 +2747,7 @@ html[data-theme="dark"] .theme-toggle-thumb .icon-moon { display: block; }
 @media (max-width: 768px) {
   .nav-container {
     gap: 0.5rem;
+    position: relative;
   }
 
   .theme-toggle--header {
@@ -2646,6 +2760,17 @@ html[data-theme="dark"] .theme-toggle-thumb .icon-moon { display: block; }
 
   .nav-menu {
     order: 3;
+  }
+
+  /* Center the brand mark in the pill on phone layout. The nav links
+     collapse into a fixed-position sheet at this width (.nav-scroll gets
+     flex:0), so without this the logo just sits pinned to the left edge
+     next to a lot of empty space with the hamburger pinned right. */
+  .nav-container .logo {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
   }
 
   .hero-section::before,
@@ -3166,6 +3291,48 @@ html[data-theme="dark"] .nav-link.active {
 .lg-reveal.lg-visible {
   opacity: 1;
   transform: translateY(0) scale(1);
+}
+
+/* Bigger entrance for page-level moments (section headers, stat blocks) —
+   more travel, more scale, and a blur-in for extra weight compared to the
+   card reveal above. Same IntersectionObserver/stagger wiring in app.js,
+   just a more dramatic finish. */
+.lg-reveal-big {
+  opacity: 0;
+  transform: translateY(46px) scale(0.9);
+  filter: blur(6px);
+  transition: opacity 0.85s var(--lg-spring-soft), transform 0.85s var(--lg-spring-soft),
+              filter 0.85s var(--lg-spring-soft);
+}
+
+.lg-reveal-big.lg-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+/* Cascading bullet reveal: once a problem/solution or use-case card has
+   settled in (.lg-visible), its list items fan in one after another rather
+   than appearing all at once with the card. */
+.prop-card.lg-visible li,
+.use-case-box.lg-visible li {
+  animation: lgListItemIn 0.55s var(--lg-spring-soft) both;
+}
+
+.prop-card.lg-visible li:nth-child(1), .use-case-box.lg-visible li:nth-child(1) { animation-delay: 0.08s; }
+.prop-card.lg-visible li:nth-child(2), .use-case-box.lg-visible li:nth-child(2) { animation-delay: 0.16s; }
+.prop-card.lg-visible li:nth-child(3), .use-case-box.lg-visible li:nth-child(3) { animation-delay: 0.24s; }
+.prop-card.lg-visible li:nth-child(4), .use-case-box.lg-visible li:nth-child(4) { animation-delay: 0.32s; }
+.prop-card.lg-visible li:nth-child(n+5), .use-case-box.lg-visible li:nth-child(n+5) { animation-delay: 0.4s; }
+
+@keyframes lgListItemIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-reveal-big { opacity: 1 !important; transform: none !important; filter: none !important; }
+  .prop-card li, .use-case-box li { animation: none !important; }
 }
 
 /* ---- 5. Modal — spring pop-in, deeper glass ---- */
