@@ -173,11 +173,18 @@ header {
   width: 100%;
   padding: 1rem 0;
   z-index: 1000;
-  transition: var(--transition-normal);
+  transition: var(--transition-normal), transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 header.scrolled {
   padding: 0.6rem 0;
+}
+
+/* Slides the whole floating pill up out of view while the user is actively
+   scrolling down through content, so it never sits on top of text you're
+   reading. Reappears instantly on any upward scroll. */
+header.header-hidden {
+  transform: translateY(-130%);
 }
 
 /* The capsule itself carries the glass surface (Tailwind utilities handle
@@ -753,6 +760,7 @@ main {
 
 .pilot-text {
   flex: 1.2;
+  min-width: 0;
 }
 
 .pilot-title {
@@ -779,12 +787,15 @@ main {
 
 .pilot-stats {
   display: flex;
-  gap: 3rem;
+  flex-wrap: wrap;
+  gap: 2rem 3rem;
 }
 
 .stat-item {
   border-left: 3px solid var(--accent);
   padding-left: 1.25rem;
+  min-width: 0;
+  flex: 1 1 140px;
 }
 
 .stat-num {
@@ -2930,7 +2941,7 @@ html[data-theme="dark"] .theme-toggle-thumb .icon-moon { display: block; }
     gap: 0.2rem;
     padding: 0.4rem;
     border-radius: 28px;
-    background: var(--glass-bg-strong);
+    background: rgba(255, 255, 255, 0.62);
     backdrop-filter: blur(var(--glass-blur)) saturate(160%);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
     border: 1px solid var(--glass-border);
@@ -2956,6 +2967,7 @@ html[data-theme="dark"] .theme-toggle-thumb .icon-moon { display: block; }
   }
 
   html[data-theme="dark"] .mobile-tabbar-glass {
+    background: rgba(15, 19, 26, 0.62);
     box-shadow: var(--depth-shadow-hover), inset 0 1px 1px rgba(255, 255, 255, 0.12), inset 0 -6px 14px rgba(0, 0, 0, 0.25);
   }
 
