@@ -1368,41 +1368,34 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
-  // ==================== FORGOT PASSWORD (EMAIL OTP) SYSTEM ====================
+  // ==================== FORGOT PASSWORD (EMAIL LINK) SYSTEM ====================
   // Flow for both farmer & buyer:
-  //   1. User enters email -> supabaseClient.auth.resetPasswordForEmail(email)
-  //      This triggers Supabase's "Reset Password" email. For this to arrive as a
-  //      6-digit OTP (instead of a magic link), the "Reset Password" template in
-  //      Supabase Dashboard > Authentication > Email Templates must use {{ .Token }}
-  //      instead of {{ .ConfirmationURL }}.
-  //   2. User enters the OTP + new password -> supabaseClient.auth.verifyOtp({
-  //        email, token, type: 'recovery'
-  //      }) verifies the code and starts a temporary recovery session.
-  //   3. supabaseClient.auth.updateUser({ password }) sets the new password while
-  //      that recovery session is active, then we sign out so they log in fresh.
+  //   1. User enters email -> supabaseClient.auth.resetPasswordForEmail(email, {
+  //        redirectTo: RESET_PASSWORD_REDIRECT_URL
+  //      })
+  //      This triggers Supabase's default "Reset Password" email containing a
+  //      magic link ({{ .ConfirmationURL }} — no template edit needed, so this
+  //      works even on free-tier projects without custom SMTP configured).
+  //   2. User clicks the link in their email -> Supabase verifies it server-side
+  //      and redirects them to reset-password.html?code=xxxx.
+  //   3. reset-password.html calls supabaseClient.auth.exchangeCodeForSession(code)
+  //      to start a temporary recovery session, then supabaseClient.auth.updateUser(
+  //      { password }) sets the new password, then signs out so they log in fresh.
   // No custom SQL table is required — Supabase's built-in auth schema manages the
-  // OTP/token lifecycle internally.
+  // token lifecycle internally. See reset-password.html for step 2 & 3.
+  //
+  // IMPORTANT: reset-password.html must be added as a Redirect URL in
+  // Supabase Dashboard > Authentication > URL Configuration, e.g.
+  // https://yoursite.com/reset-password.html
+  const RESET_PASSWORD_REDIRECT_URL = `${window.location.origin}${window.location.pathname.replace(/index\.html$/, '')}reset-password.html`;
+
   function setupForgotPasswordFlow(role) {
     const requestForm = document.getElementById(`${role}-forgot-request-form`);
-    const resetForm = document.getElementById(`${role}-forgot-reset-form`);
-    if (!requestForm || !resetForm) return;
+    if (!requestForm) return;
 
     const emailInput = document.getElementById(`${role}-forgot-email`);
-    const otpInput = document.getElementById(`${role}-otp`);
-    const newPasswordInput = document.getElementById(`${role}-new-password`);
-    const confirmPasswordInput = document.getElementById(`${role}-confirm-new-password`);
-    const resendLink = document.getElementById(`${role}-resend-otp`);
-    const changeEmailLink = document.getElementById(`${role}-change-email`);
 
-    function resetToStepOne() {
-      resetForm.style.display = 'none';
-      requestForm.style.display = '';
-      otpInput.value = '';
-      newPasswordInput.value = '';
-      confirmPasswordInput.value = '';
-    }
-
-    // Step 1: Send OTP
+    // Step 1: Send the reset link
     requestForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -1417,121 +1410,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = `<span class="spinner"></span> Sending OTP...`;
+        submitBtn.innerHTML = `<span class="spinner"></span> Sending link...`;
 
         if (!supabaseClient) {
           throw new Error('Supabase client was not initialized properly.');
         }
 
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+          redirectTo: RESET_PASSWORD_REDIRECT_URL
+        });
         if (error) throw error;
 
-        resetForm.dataset.email = email;
-        showAuthMessage(requestForm, 'OTP sent! Check your email inbox.', 'success');
-
-        setTimeout(() => {
-          requestForm.style.display = 'none';
-          resetForm.style.display = '';
-        }, 900);
+        showAuthMessage(requestForm, 'Reset link sent! Check your email inbox and click the link to set a new password.', 'success');
+        requestForm.reset();
 
       } catch (err) {
         console.error(`${role} forgot-password request error:`, err.message);
-        showAuthMessage(requestForm, err.message || 'Could not send OTP. Please try again.', 'error');
+        showAuthMessage(requestForm, err.message || 'Could not send reset link. Please try again.', 'error');
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
       }
     });
 
-    // Step 2: Verify OTP + set new password
-    resetForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const email = resetForm.dataset.email;
-      const otp = otpInput.value.trim();
-      const newPassword = newPasswordInput.value;
-      const confirmPassword = confirmPasswordInput.value;
-      const submitBtn = resetForm.querySelector('button[type="submit"]');
-      const originalBtnText = submitBtn.textContent;
-
-      if (!otp || !newPassword || !confirmPassword) {
-        showAuthMessage(resetForm, 'Please fill in all fields.', 'error');
-        return;
-      }
-      if (!validatePasswords(resetForm, newPassword, confirmPassword)) return;
-
-      try {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `<span class="spinner"></span> Verifying...`;
-
-        if (!supabaseClient) {
-          throw new Error('Supabase client was not initialized properly.');
-        }
-
-        const { error: verifyError } = await supabaseClient.auth.verifyOtp({
-          email: email,
-          token: otp,
-          type: 'recovery'
-        });
-        if (verifyError) throw verifyError;
-
-        const { error: updateError } = await supabaseClient.auth.updateUser({
-          password: newPassword
-        });
-        if (updateError) throw updateError;
-
-        showAuthMessage(resetForm, 'Password reset successful! Redirecting to sign in...', 'success');
-
-        // Drop the temporary recovery session so the user signs in fresh.
-        await supabaseClient.auth.signOut();
-
-        setTimeout(() => {
-          window.location.hash = `#/${role}-signin`;
-        }, 1500);
-
-      } catch (err) {
-        console.error(`${role} password reset error:`, err.message);
-        showAuthMessage(resetForm, err.message || 'Invalid or expired OTP. Please try again.', 'error');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalBtnText;
-      }
-    });
-
-    // Resend OTP
-    if (resendLink) {
-      resendLink.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const email = resetForm.dataset.email;
-        if (!email || !supabaseClient) return;
-
-        const originalText = resendLink.textContent;
-        try {
-          resendLink.textContent = 'Sending...';
-          const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
-          if (error) throw error;
-          showAuthMessage(resetForm, 'A new OTP has been sent.', 'success');
-        } catch (err) {
-          showAuthMessage(resetForm, err.message || 'Could not resend OTP.', 'error');
-        } finally {
-          resendLink.textContent = originalText;
-        }
-      });
-    }
-
-    // Let the user go back and correct their email
-    if (changeEmailLink) {
-      changeEmailLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        resetToStepOne();
-      });
-    }
-
-    // Reset the flow back to step 1 whenever this page is (re)entered
+    // Reset the request form (clear any old alert) whenever this page is
+    // (re)entered — step 2 now lives entirely on reset-password.html.
     document.addEventListener('hashchange', () => {
       const hash = window.location.hash.slice(1);
       if (hash === `/${role}-forgot-password`) {
-        resetToStepOne();
+        requestForm.reset();
+        const alertDiv = requestForm.querySelector('.auth-alert');
+        if (alertDiv) alertDiv.remove();
       }
     });
   }
