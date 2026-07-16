@@ -636,8 +636,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==================== HEADER SCROLL EFFECT ====================
   if (header) {
     let headerTicking = false;
+    let lastScrollY = window.scrollY;
+    const HEADER_HIDE_THRESHOLD = 80; // don't hide until scrolled a bit past the top
     const updateHeaderScrolled = () => {
-      header.classList.toggle('scrolled', window.scrollY > 40);
+      const currentY = window.scrollY;
+      header.classList.toggle('scrolled', currentY > 40);
+
+      // Auto-hide the header while actively scrolling down through content
+      // (so it never sits on top of text you're reading), and bring it back
+      // the moment the user scrolls up to look for it. Skipped while the
+      // mobile menu sheet is open so it can't disappear mid-interaction.
+      const menuOpen = navMenu && navMenu.classList.contains('active');
+      if (!menuOpen) {
+        if (currentY > lastScrollY && currentY > HEADER_HIDE_THRESHOLD) {
+          header.classList.add('header-hidden');
+        } else {
+          header.classList.remove('header-hidden');
+        }
+      }
+
+      lastScrollY = currentY;
       headerTicking = false;
     };
     // passive + rAF-batched, matching the other scroll listeners in this
