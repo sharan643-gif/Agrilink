@@ -783,7 +783,7 @@ main {
 }
 
 .stat-item {
-  border-left: 3px solid #81C784;
+  border-left: 3px solid var(--accent);
   padding-left: 1.25rem;
 }
 
@@ -792,7 +792,7 @@ main {
   font-weight: 800;
   display: block;
   line-height: 1.1;
-  color: #81C784;
+  color: var(--accent);
 }
 
 .stat-lbl {
@@ -843,7 +843,7 @@ main {
 
 .map-card li span:last-child {
   font-weight: 600;
-  color: #81C784;
+  color: var(--accent);
 }
 
 /* CTA BANNER FOOTER */
