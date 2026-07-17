@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       id: 1,
       farmerName: "Thiru R. Selvam",
-      avatar: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png",
+      avatar: "assets/images/farmer-1.png",
       crop: "Salem Turmeric",
       quantity: 1200,
       quantityDisplay: "1,200 Kg",
@@ -395,12 +395,12 @@ document.addEventListener('DOMContentLoaded', () => {
       phone: "+919845011111",
       altPhone: "+919845011112",
       email: "selvam.turmeric@example.com",
-      image: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png"
+      image: "assets/images/farmer-1.png"
     },
     {
       id: 2,
       farmerName: "Smt. K. Gomathi",
-      avatar: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-2.png",
+      avatar: "assets/images/farmer-2.png",
       crop: "Onions",
       quantity: 3500,
       quantityDisplay: "3.5 Tonnes",
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
       phone: "+919845022222",
       altPhone: "",
       email: "gomathi.farms@example.com",
-      image: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-2.png"
+      image: "assets/images/farmer-2.png"
     }
   ];
 
@@ -885,7 +885,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // to a raw numeric quantity/availability value; finally show a fallback.
     const displayCandidates = [item.quantityDisplay, item.quantity_display, item.availabilityDisplay, item.availability];
     const displayFound = displayCandidates.find(v => !isEmpty(v));
-    if (displayFound) return displayFound;
+    if (displayFound) {
+      const text = String(displayFound).trim();
+      // If it's just a bare number with no unit (e.g. "10"), add "Kg".
+      return /^[\d,.]+$/.test(text) ? `${text} Kg` : text;
+    }
 
     const numericCandidates = [item.quantity, item.availableQuantity, item.stock];
     const numericFound = numericCandidates.find(v => !isEmpty(v));
@@ -910,6 +914,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const candidates = [item.email];
     const found = candidates.find(v => !isEmpty(v));
     return found || 'Not available';
+  }
+
+  function getPriceDisplay(item) {
+    // Farmers can type a price a few different ways ("500", "₹500",
+    // "140 - 160", "₹140 - ₹160 / Kg", etc.). Normalize all of them so the
+    // price badge always shows a ₹ symbol and a "/ Kg" unit, without ever
+    // double-adding either one.
+    const raw = [item.price, item.priceRange].find(v => !isEmpty(v));
+    if (!raw) return 'Price on request';
+
+    let text = String(raw).trim();
+
+    // Add ₹ before every number that doesn't already have one right before it
+    // (covers single prices and ranges like "140 - 160").
+    text = text.replace(/(^|\s)(?!₹)(\d)/g, (match, prefix, digit) => `${prefix}₹${digit}`);
+
+    // Append the "/ Kg" unit if some per-unit suffix isn't already present.
+    if (!/\/\s*(kg|kilogram|tonne|ton|quintal)/i.test(text)) {
+      text = `${text} / Kg`;
+    }
+
+    return text;
   }
 
   // ==================== RENDER DIRECTORY CARDS ====================
@@ -966,13 +992,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       card.innerHTML = `
         <div class="card-image-box">
-          <img src="${item.image}" alt="${item.crop} harvest" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/hero_bg.png';">
+          <img src="${item.image}" alt="${item.crop} harvest" onerror="this.onerror=null;this.src='assets/images/hero_bg.png';">
           ${verificationBadgeHtml}
-          <div class="crop-price-badge">${item.price}</div>
+          <div class="crop-price-badge">${getPriceDisplay(item)}</div>
         </div>
         <div class="card-content">
           <div class="card-farmer-info">
-            <img src="${item.avatar}" alt="${farmerName}" class="farmer-avatar" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png';">
+            <img src="${item.avatar}" alt="${farmerName}" class="farmer-avatar" onerror="this.onerror=null;this.src='assets/images/farmer-1.png';">
             <div class="farmer-name-details">
               <h4>${farmerName}</h4>
               <div class="farmer-rating">
@@ -1020,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     modalFarmerAvatar.onerror = function () {
       this.onerror = null;
-      this.src = 'https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png';
+      this.src = 'assets/images/farmer-1.png';
     };
     modalFarmerAvatar.src = targetListing.avatar;
 
@@ -1034,7 +1060,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalFarmerLocation.textContent = `${targetListing.location} District, Tamil Nadu`;
     modalCropName.textContent = targetListing.crop;
     modalQuantity.textContent = availabilityText;
-    modalPrice.textContent = targetListing.price;
+    modalPrice.textContent = getPriceDisplay(targetListing);
     modalAddress.textContent = addressText;
     modalAltPhone.textContent = altPhoneText;
     modalEmail.textContent = emailText;
