@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       id: 1,
       farmerName: "Thiru R. Selvam",
-      avatar: "assets/images/farmer-1.png",
+      avatar: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png",
       crop: "Salem Turmeric",
       quantity: 1200,
       quantityDisplay: "1,200 Kg",
@@ -395,12 +395,12 @@ document.addEventListener('DOMContentLoaded', () => {
       phone: "+919845011111",
       altPhone: "+919845011112",
       email: "selvam.turmeric@example.com",
-      image: "assets/images/farmer-1.png"
+      image: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png"
     },
     {
       id: 2,
       farmerName: "Smt. K. Gomathi",
-      avatar: "assets/images/farmer-2.png",
+      avatar: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-2.png",
       crop: "Onions",
       quantity: 3500,
       quantityDisplay: "3.5 Tonnes",
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
       phone: "+919845022222",
       altPhone: "",
       email: "gomathi.farms@example.com",
-      image: "assets/images/farmer-2.png"
+      image: "https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-2.png"
     }
   ];
 
@@ -992,13 +992,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       card.innerHTML = `
         <div class="card-image-box">
-          <img src="${item.image}" alt="${item.crop} harvest" onerror="this.onerror=null;this.src='assets/images/hero_bg.png';">
+          <img src="${item.image}" alt="${item.crop} harvest" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/hero_bg.png';">
           ${verificationBadgeHtml}
           <div class="crop-price-badge">${getPriceDisplay(item)}</div>
         </div>
         <div class="card-content">
           <div class="card-farmer-info">
-            <img src="${item.avatar}" alt="${farmerName}" class="farmer-avatar" onerror="this.onerror=null;this.src='assets/images/farmer-1.png';">
+            <img src="${item.avatar}" alt="${farmerName}" class="farmer-avatar" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png';">
             <div class="farmer-name-details">
               <h4>${farmerName}</h4>
               <div class="farmer-rating">
@@ -1046,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     modalFarmerAvatar.onerror = function () {
       this.onerror = null;
-      this.src = 'assets/images/farmer-1.png';
+      this.src = 'https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png';
     };
     modalFarmerAvatar.src = targetListing.avatar;
 
@@ -1173,8 +1173,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const quantity = Number(document.getElementById('listing-quantity').value);
       let quantityDisplay = document.getElementById('listing-quantity-display').value.trim();
       const price = document.getElementById('listing-price').value.trim();
-      const image = 'assets/images/hero_bg.png';
-      const avatar = 'assets/images/farmer-1.png';
+      const image = 'https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/hero_bg.png';
+      const avatar = 'https://raw.githubusercontent.com/sharan643-gif/Agrilink/main/farmer-1.png';
       const description = document.getElementById('listing-description').value.trim();
 
       if (!farmerName || !phone || !crop || !location || !quantity || !price) {
