@@ -118,12 +118,18 @@ html {
   -webkit-font-smoothing: antialiased;
 }
 
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--bg-warm);
   color: var(--text-main);
   line-height: 1.6;
   overflow-x: hidden;
+  max-width: 100%;
   position: relative;
 }
 
@@ -366,6 +372,33 @@ header.scrolled {
    reading. Reappears instantly on any upward scroll. */
 header.header-hidden {
   transform: translateY(-130%);
+}
+
+/* Keep the header pinned to the real viewport (not the layout viewport),
+   and put it on its own compositing layer. Mobile WebKit/Chrome have a
+   long-standing bug where `position: fixed` elements that also use
+   `backdrop-filter` will flicker, jump, or briefly disappear during
+   momentum/inertial scrolling because the browser keeps re-rastering the
+   blur against a moving background. Forcing a dedicated GPU layer via
+   translateZ(0) avoids that repaint thrash. */
+header {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Belt-and-braces: on phones/small tablets the header must always stay put.
+   app.js already skips adding `header-hidden` below 768px, but this rule
+   guarantees the visual result even if that JS ever fails to run (slow
+   script start, blocked scroll listener, viewport resize mid-scroll,
+   etc.) — the header can never end up translated off-screen on mobile. */
+@media (max-width: 768px) {
+  header,
+  header.header-hidden {
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
+  }
 }
 
 /* The capsule itself carries the glass surface (Tailwind utilities handle
@@ -640,6 +673,15 @@ header.scrolled .nav-container {
 main {
   margin-top: 96px;
   min-height: calc(100vh - 96px - 350px); /* Fill space between header & footer */
+  /* On mobile, 100vh recalculates every time the browser's address bar
+     auto-collapses/expands (which happens on its own, not just from touch
+     scrolling), reflowing the page height under the fixed header/tabbar and
+     making them appear to jump or flicker. 100svh uses the smallest
+     possible viewport (toolbar fully shown) and stays constant regardless
+     of toolbar state, so it doesn't fight the fixed nav elements.
+     Browsers that don't support svh simply ignore this line and keep the
+     100vh value above. */
+  min-height: calc(100svh - 96px - 350px);
 }
 
 .page-view {
@@ -2517,6 +2559,7 @@ html[data-theme="dark"] .contact-card {
   align-items: center;
   padding: 4rem 1.5rem;
   min-height: calc(100vh - 96px - 350px); /* fill space between header & footer */
+  min-height: calc(100svh - 96px - 350px); /* see main{} above — avoids mobile toolbar-driven reflow */
   width: 100%;
   perspective: 1200px;
   position: relative;
@@ -3313,6 +3356,13 @@ html[data-theme="dark"] .theme-toggle-thumb .icon-moon { display: block; }
     z-index: 900;
     pointer-events: none;
     animation: tabbarFloat 6s ease-in-out infinite;
+    /* Own GPU compositing layer — same fix as the header above. Without
+       this, mobile Safari/Chrome can flicker or momentarily hide fixed +
+       backdrop-filter elements while the page is actively scrolling. */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 
   /* Soft ambient colour glow breathing behind the bar — gives it the
