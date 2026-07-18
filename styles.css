@@ -338,6 +338,12 @@ a {
   width: 100%;
 }
 
+@media (max-width: 480px) {
+  .container {
+    padding: 0 1rem;
+  }
+}
+
 /* ====================================================================
    Navigation Header :: Liquid-Glass Floating Pill Bar
    ==================================================================== */
@@ -493,6 +499,7 @@ header.scrolled .nav-container {
   cursor: pointer;
   padding: 0.5rem;
   flex-shrink: 0;
+  touch-action: manipulation;
 }
 
 .mobile-nav-toggle span {
