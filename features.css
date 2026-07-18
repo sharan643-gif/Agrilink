@@ -152,7 +152,7 @@
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
   padding: 0 4px;
 }
-.ag-fav-drawer { position: fixed; inset: 0; z-index: 4000; pointer-events: none; }
+.ag-fav-drawer { position: fixed; inset: 0; z-index: 4000; pointer-events: none; overflow: hidden; }
 .ag-drawer-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.25s ease; }
 .ag-drawer-panel {
   position: absolute; top: 0; right: 0; height: 100%; width: min(380px, 90vw);
@@ -242,6 +242,17 @@
 .ag-notif-dot { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #ff5f6d; opacity: 0; transform: scale(0.5); transition: all 0.2s ease; }
 .ag-notif-bell.has-unread .ag-notif-dot { opacity: 1; transform: scale(1); animation: agNotifPulse 1.8s ease-in-out infinite; }
 @keyframes agNotifPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,95,109,0.5); } 50% { box-shadow: 0 0 0 5px rgba(255,95,109,0); } }
+
+/* On mobile the logo becomes position:absolute + centered (see styles.css),
+   which leaves the bell as the leftmost real item in the nav pill's flex
+   row. justify-content:space-between then pushes it all the way to the
+   left edge — straight under the centered logo. Group it with the
+   hamburger on the right instead. */
+@media (max-width: 768px) {
+  .ag-notif-bell {
+    margin-left: auto;
+  }
+}
 .ag-notif-panel {
   position: fixed; width: min(320px, 90vw); background: var(--card-bg, #16241a); border-radius: 14px;
   box-shadow: 0 16px 48px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
@@ -348,6 +359,7 @@
 .ag-faq-answer p { margin: 0; padding: 0 1.25rem 1rem; color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; }
 
 /* ---------- Testimonials ---------- */
+.ag-testimonial-section .container { overflow: hidden; }
 .ag-testimonial-track { display: flex; transition: transform 0.5s cubic-bezier(.2,.85,.25,1); }
 .ag-testimonial-slide { min-width: 100%; padding: 0 1rem; }
 .ag-testimonial-slide p { font-size: 1.1rem; font-style: italic; line-height: 1.6; }
