@@ -122,6 +122,73 @@ body {
   color: var(--text-main);
   line-height: 1.6;
   overflow-x: hidden;
+  position: relative;
+}
+
+/* ==================== ANIMATED DARK-MODE BACKGROUND ====================
+   Soft, slow-drifting color blobs behind all page content. Pure CSS
+   (transform-only animation), sits on a fixed layer at z-index -1 so it
+   never interferes with layout, cards, or any other graphics. Disabled
+   entirely in light mode and simplified on small screens / for users who
+   prefer reduced motion, to keep things smooth and battery-friendly. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-theme);
+}
+
+html[data-theme="dark"] body::before {
+  opacity: 1;
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.50) 0%, transparent 42%),
+    radial-gradient(circle at 82% 12%, rgba(236, 72, 153, 0.46) 0%, transparent 40%),
+    radial-gradient(circle at 75% 55%, rgba(56, 189, 248, 0.46) 0%, transparent 42%),
+    radial-gradient(circle at 25% 75%, rgba(168, 85, 247, 0.48) 0%, transparent 42%),
+    radial-gradient(circle at 60% 90%, rgba(52, 211, 153, 0.40) 0%, transparent 40%),
+    radial-gradient(circle at 90% 85%, rgba(251, 191, 36, 0.36) 0%, transparent 38%),
+    radial-gradient(circle at 50% 45%, rgba(244, 63, 94, 0.32) 0%, transparent 45%);
+  background-repeat: no-repeat;
+  background-size: 160% 160%;
+  background-position: 0% 0%;
+  filter: blur(65px) saturate(190%);
+  will-change: transform;
+  animation: bg-drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes bg-drift {
+  0%   { transform: translate3d(-6%, -4%, 0) scale(1); }
+  20%  { transform: translate3d(5%, 4%, 0) scale(1.14); }
+  40%  { transform: translate3d(-4%, 7%, 0) scale(1.05); }
+  60%  { transform: translate3d(6%, -6%, 0) scale(1.18); }
+  80%  { transform: translate3d(-3%, -7%, 0) scale(1.08); }
+  100% { transform: translate3d(6%, 5%, 0) scale(1); }
+}
+
+/* Mobile: fewer/simpler gradients + a bit less blur so it stays smooth
+   on lower-powered GPUs and doesn't fight with scroll performance. */
+@media (max-width: 768px) {
+  html[data-theme="dark"] body::before {
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.44) 0%, transparent 46%),
+      radial-gradient(circle at 80% 25%, rgba(236, 72, 153, 0.40) 0%, transparent 44%),
+      radial-gradient(circle at 30% 80%, rgba(56, 189, 248, 0.40) 0%, transparent 46%),
+      radial-gradient(circle at 85% 80%, rgba(168, 85, 247, 0.38) 0%, transparent 44%),
+      radial-gradient(circle at 55% 50%, rgba(251, 191, 36, 0.28) 0%, transparent 42%);
+    background-size: 190% 190%;
+    filter: blur(44px) saturate(180%);
+    animation-duration: 13s;
+  }
+}
+
+/* Respect reduced-motion preferences: keep the soft color wash, drop the animation */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="dark"] body::before {
+    animation: none;
+  }
 }
 
 h1, h2, h3, h4 {
@@ -391,6 +458,67 @@ header.scrolled .nav-container {
 .btn-accent:hover {
   background-color: var(--accent-hover);
   transform: translateY(-2px);
+}
+
+.btn-danger {
+  background-color: #fff;
+  color: #d32f2f;
+  border: 2px solid #d32f2f;
+}
+
+.btn-danger:hover {
+  background-color: #d32f2f;
+  color: var(--white);
+  transform: translateY(-2px);
+}
+
+/* ==================== "MY LISTINGS" (PROFILE DASHBOARD) ==================== */
+.my-listings-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color, rgba(0,0,0,0.08));
+}
+
+.my-listings-section h3 {
+  margin-bottom: 1rem;
+}
+
+.my-listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.my-listing-card {
+  border: 1px solid var(--border-color, rgba(0,0,0,0.08));
+  border-radius: var(--border-radius-sm);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.my-listing-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.my-listing-card-top h4 {
+  margin: 0;
+}
+
+.my-listing-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.my-listing-card .btn-danger {
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+  width: 100%;
+  margin-top: 0.25rem;
 }
 
 /* Section Routing Animations */
