@@ -19,6 +19,7 @@
        all implemented directly inside styles.css (see "LIQUID GLASS 27"
        section near the bottom of that file). -->
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="intro-liquid-glass.css">
   <!-- Additive feature layer (favorites, compare, reviews, notifications,
        cookie banner, seasonal calendar, FAQ, testimonials, and more) —
        see features.js. Never overrides styles.css, only extends it. -->
@@ -38,254 +39,19 @@
 </head>
 <body>
 
-  <!-- ==================== CINEMATIC INTRO / PORTAL ANIMATION ====================
-       Plays once on the first load of a browser session (sessionStorage flag),
-       and is skipped entirely for prefers-reduced-motion. ~6.8s sequence:
-         0.00s - 1.10s  logo materializes from converging light particles (canvas)
-         1.10s - 1.45s  ripple pulse + crisp SVG mark crossfades in over the particles
-         1.35s - 2.10s  brand name emerges with aurora gradient + orbiting sparks
-         2.10s - 3.05s  hold, breathing glow
-         3.05s - 3.85s  logo + name slide up and dissolve into radiant beam streaks
-         3.75s - 4.55s  homepage wallpaper slides in with parallax Ken-Burns drift
-         4.45s - 6.80s  hero copy materializes line-by-line via holographic wipes
-       All timings are mirrored in the JS timers and the CSS keyframes below,
-       so if you retune one, retune the other. -->
-  <div id="intro-splash" aria-hidden="true">
-    <canvas id="intro-canvas"></canvas>
-    <div class="intro-flare intro-flare--a"></div>
-    <div class="intro-flare intro-flare--b"></div>
-    <div class="intro-dust-veil"></div>
-    <div class="intro-ripple" id="intro-ripple"></div>
-    <div class="intro-beam intro-beam--l" id="intro-beam-l"></div>
-    <div class="intro-beam intro-beam--r" id="intro-beam-r"></div>
-    <div class="intro-splash__mark" id="intro-mark">
-      <svg class="intro-splash__logo" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M17 8C14.24 8 12 10.24 12 13C12 15.76 14.24 18 17 18C19.76 18 22 15.76 22 13C22 10.24 19.76 8 17 8ZM17 16.2C15.24 16.2 13.8 14.76 13.8 13C13.8 11.24 15.24 9.8 17 9.8C18.76 9.8 20.2 11.24 20.2 13C20.2 14.76 18.76 16.2 17 16.2ZM7 2C3.13 2 0 5.13 0 9C0 13.3 4.25 17.5 10 21.8C10.55 22.2 11.27 22.4 12 22.4C12.73 22.4 13.45 22.2 14 21.8C15.02 21.03 16.03 20.17 17 19.26C16 19.04 15.06 18.59 14.23 17.95C13.56 18.5 12.8 19.12 12 19.75C7 15.9 2 12.2 2 9C2 6.24 4.24 4 7 4C8.94 4 10.64 5.12 11.41 6.85C11.64 7.37 12.36 7.37 12.59 6.85C13.06 5.8 13.97 4.95 15.06 4.46C14.72 3.73 14.2 3.09 13.55 2.6C12.06 1.48 10.15 1.59 9.17 2.2C8.5 1.9 7.77 2 7 2Z"/>
-      </svg>
-      <span class="intro-splash__ring" aria-hidden="true"></span>
-    </div>
-    <span class="intro-splash__name" id="intro-name" data-text="AgriLink">AgriLink</span>
+  <!-- ==================== PAINT SWEEP INTRO ====================
+       Plays once per browser session (sessionStorage flag), skipped for
+       prefers-reduced-motion. ~4.55s active sequence — a full-screen brand
+       color wash blooms to cover the screen, clears away to reveal the
+       "AgriLink" wordmark, holds, then dissolves. Timing documented at the
+       top of intro-liquid-glass.css. -->
+  <div id="intro-liquid" aria-hidden="true">
+    <div class="paint-sweep"></div>
+    <h1 class="intro-word">AgriLink</h1>
   </div>
 
-  <script>
-    (function () {
-      var splash = document.getElementById('intro-splash');
-      if (!splash) return;
-
-      var alreadyShown = sessionStorage.getItem('introPlayed');
-      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-      if (alreadyShown || reduceMotion) {
-        splash.remove();
-        return;
-      }
-
-      sessionStorage.setItem('introPlayed', 'true');
-      document.documentElement.classList.add('intro-active');
-
-      var heroArm = document.getElementById('home-hero');
-      if (heroArm) heroArm.classList.add('cine-armed');
-
-      var canvas = document.getElementById('intro-canvas');
-      var mark = document.getElementById('intro-mark');
-      var nameEl = document.getElementById('intro-name');
-      var ripple = document.getElementById('intro-ripple');
-      var beamL = document.getElementById('intro-beam-l');
-      var beamR = document.getElementById('intro-beam-r');
-      var hero = document.getElementById('home-hero');
-      var reveals = hero ? hero.querySelectorAll('.cine-reveal') : [];
-
-      var ctx = canvas ? canvas.getContext('2d') : null;
-      var DPR = Math.min(window.devicePixelRatio || 1, 2);
-      var W, H, CX, CY;
-      var HUES = ['rgba(69,212,131,', 'rgba(255,145,66,', 'rgba(124,240,170,', 'rgba(120,180,255,', 'rgba(255,255,255,'];
-
-      function resize() {
-        W = window.innerWidth;
-        H = window.innerHeight;
-        CX = W / 2;
-        CY = H / 2 - 24;
-        if (canvas) {
-          canvas.width = W * DPR;
-          canvas.height = H * DPR;
-          canvas.style.width = W + 'px';
-          canvas.style.height = H + 'px';
-          ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-        }
-      }
-      resize();
-      window.addEventListener('resize', resize);
-
-      // ---- Formation particles: converge from the outer dark into a ring
-      // that traces the logo mark, "etching" it into place, then settle
-      // into slow-drifting ambient dust for the rest of the sequence. ----
-      var FORM_COUNT = 90;
-      var particles = [];
-      (function buildFormationParticles() {
-        for (var i = 0; i < FORM_COUNT; i++) {
-          var a = (i / FORM_COUNT) * Math.PI * 2;
-          var r = 46 + Math.sin(i * 3.1) * 6;
-          var tx = Math.cos(a) * r;
-          var ty = Math.sin(a) * r;
-          var startAngle = Math.random() * Math.PI * 2;
-          var startDist = 260 + Math.random() * 420;
-          particles.push({
-            x: CX + Math.cos(startAngle) * startDist,
-            y: CY + Math.sin(startAngle) * startDist,
-            tx: tx, ty: ty,
-            size: 1.4 + Math.random() * 1.8,
-            hue: HUES[i % HUES.length],
-            delay: (i * 4) + Math.random() * 60,
-            arrived: false,
-            driftA: Math.random() * Math.PI * 2,
-            driftR: 30 + Math.random() * 90
-          });
-        }
-      })();
-
-      // ---- Orbiting sparks around the brand name, spawned once it appears
-      var sparks = [];
-      var sparksSpawned = false;
-      function spawnSparks() {
-        if (sparksSpawned || !nameEl) return;
-        sparksSpawned = true;
-        var rect = nameEl.getBoundingClientRect();
-        var sx = rect.left + rect.width / 2;
-        var sy = rect.top + rect.height / 2;
-        for (var i = 0; i < 12; i++) {
-          sparks.push({
-            baseX: sx, baseY: sy,
-            angle: (i / 12) * Math.PI * 2,
-            radiusX: rect.width / 2 + 20 + Math.random() * 26,
-            radiusY: 22 + Math.random() * 18,
-            speed: 0.5 + Math.random() * 0.6,
-            size: 1 + Math.random() * 1.6,
-            hue: HUES[i % HUES.length]
-          });
-        }
-      }
-
-      var startTime = performance.now();
-      var exiting = false;
-      var raf;
-
-      function draw(now) {
-        var t = now - startTime;
-        ctx.clearRect(0, 0, W, H);
-
-        // Formation / ambient dust particles
-        for (var i = 0; i < particles.length; i++) {
-          var p = particles[i];
-          var localT = t - p.delay;
-          if (!p.arrived) {
-            if (localT <= 0) {
-              ctx.beginPath();
-              ctx.fillStyle = p.hue + '0.25)';
-              ctx.arc(p.x, p.y, p.size * 0.6, 0, Math.PI * 2);
-              ctx.fill();
-              continue;
-            }
-            var dur = 780;
-            var prog = Math.min(localT / dur, 1);
-            var ease = 1 - Math.pow(1 - prog, 3);
-            var destX = CX + p.tx, destY = CY + p.ty;
-            var curX = p.x + (destX - p.x) * ease;
-            var curY = p.y + (destY - p.y) * ease;
-            if (prog < 1) {
-              ctx.beginPath();
-              ctx.strokeStyle = p.hue + (0.35 * (1 - prog)) + ')';
-              ctx.lineWidth = p.size * 0.6;
-              ctx.moveTo(curX - (destX - curX) * 0.6, curY - (destY - curY) * 0.6);
-              ctx.lineTo(curX, curY);
-              ctx.stroke();
-            }
-            ctx.beginPath();
-            ctx.fillStyle = p.hue + (0.55 + 0.4 * ease) + ')';
-            ctx.shadowColor = p.hue + '0.9)';
-            ctx.shadowBlur = 8;
-            ctx.arc(curX, curY, p.size, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            if (prog >= 1) {
-              p.arrived = true;
-              p.x = destX; p.y = destY;
-            }
-          } else if (!exiting) {
-            var drift = Math.sin(t * 0.0006 + p.driftA) * 3;
-            var dx = CX + p.tx + drift;
-            var dy = CY + p.ty + Math.cos(t * 0.0005 + p.driftA) * 3;
-            ctx.beginPath();
-            ctx.fillStyle = p.hue + '0.4)';
-            ctx.shadowColor = p.hue + '0.7)';
-            ctx.shadowBlur = 5;
-            ctx.arc(dx, dy, p.size * 0.8, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-          } else {
-            var et = Math.min((t - 3050) / 800, 1.4);
-            var ex = CX + p.tx + Math.sin(p.driftA) * 20 * et;
-            var ey = CY + p.ty - Math.pow(et, 1.6) * 620;
-            var eo = Math.max(0, 1 - et);
-            ctx.beginPath();
-            ctx.strokeStyle = p.hue + (0.5 * eo) + ')';
-            ctx.lineWidth = p.size;
-            ctx.moveTo(ex, ey + 34 * et + 10);
-            ctx.lineTo(ex, ey);
-            ctx.stroke();
-          }
-        }
-
-        // Orbiting sparks around brand name
-        for (var s = 0; s < sparks.length; s++) {
-          var sp = sparks[s];
-          var ang = sp.angle + t * 0.0016 * sp.speed;
-          var sxp = sp.baseX + Math.cos(ang) * sp.radiusX;
-          var syp = sp.baseY + Math.sin(ang) * sp.radiusY;
-          var fade = exiting ? Math.max(0, 1 - (t - 3050) / 500) : Math.min(1, (t - 1350) / 400);
-          if (fade <= 0) continue;
-          ctx.beginPath();
-          ctx.fillStyle = sp.hue + (0.75 * fade) + ')';
-          ctx.shadowColor = sp.hue + '0.9)';
-          ctx.shadowBlur = 6;
-          ctx.arc(sxp, syp, sp.size, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        }
-
-        if (!sparksSpawned && t > 1300) spawnSparks();
-
-        if (t < 6900) {
-          raf = requestAnimationFrame(draw);
-        }
-      }
-      raf = requestAnimationFrame(draw);
-
-      // ---- Timeline choreography (mirrors CSS keyframe delays) ----
-      window.setTimeout(function () { mark.classList.add('is-formed'); ripple.classList.add('is-pulsing'); }, 1100);
-      window.setTimeout(function () { nameEl.classList.add('is-visible'); }, 1350);
-      window.setTimeout(function () {
-        exiting = true;
-        mark.classList.add('is-exiting');
-        nameEl.classList.add('is-exiting');
-        beamL.classList.add('is-streaking');
-        beamR.classList.add('is-streaking');
-      }, 3050);
-      window.setTimeout(function () {
-        document.documentElement.classList.remove('intro-active');
-        if (hero) hero.classList.add('wallpaper-in');
-      }, 3800);
-      window.setTimeout(function () {
-        for (var i = 0; i < reveals.length; i++) {
-          reveals[i].classList.add('in');
-        }
-      }, 4500);
-      window.setTimeout(function () {
-        splash.remove();
-        window.removeEventListener('resize', resize);
-        if (raf) cancelAnimationFrame(raf);
-      }, 6900);
-    })();
-  </script>
+  <!-- Intro orchestration — must load after the markup above -->
+  <script src="intro-liquid-glass.js"></script>
 
   <!-- Scroll Progress Glow Bar :: fills + glows as the page is scrolled (see app.js "initScrollProgressGlow") -->
   <div class="scroll-progress" id="scroll-progress" aria-hidden="true"><span class="scroll-progress-fill" id="scroll-progress-fill"></span></div>
