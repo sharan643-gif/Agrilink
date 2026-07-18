@@ -516,10 +516,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Custom View Triggers
     if (targetPageId === 'page-buyers') {
-      fetchListings();
+      if (updateBuyerDirectoryAccess()) {
+        fetchListings();
+      }
     }
     if (targetPageId === 'page-farmers') {
-      fetchFarmersPreview();
+      if (updateFarmersPreviewAccess()) {
+        fetchFarmersPreview();
+      }
       updateFarmerListingFormAccess();
     }
     if (targetPageId === 'page-profile') {
@@ -606,16 +610,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const extraValue = document.getElementById('profile-extra-value');
     const dashboardBtn = document.getElementById('profile-dashboard-btn');
 
+    const myListingsSection = document.getElementById('profile-my-listings-section');
+
     if (role === 'buyer') {
       roleBadge.textContent = 'Buyer';
       extraLabel.textContent = 'Business Address';
       extraValue.textContent = meta.address || 'Not available';
       dashboardBtn.onclick = () => { window.location.hash = '#/buyers'; };
+      if (myListingsSection) myListingsSection.style.display = 'none';
     } else {
       roleBadge.textContent = 'Farmer';
       extraLabel.textContent = 'Primary Crop';
       extraValue.textContent = meta.crop_type || 'Not available';
       dashboardBtn.onclick = () => { window.location.hash = '#/farmers'; };
+      if (myListingsSection) {
+        myListingsSection.style.display = 'block';
+        fetchMyListings(email, phone);
+      }
     }
 
     const signOutBtn = document.getElementById('profile-signout-btn');
@@ -763,6 +774,45 @@ document.addEventListener('DOMContentLoaded', () => {
     return role === 'farmer' && !!user;
   }
 
+  function isBuyerSignedIn() {
+    const { role, user } = getAuthSession();
+    return role === 'buyer' && !!user;
+  }
+
+  // Shows the "Meet Our Farmers" preview only to signed-in Farmers; everyone
+  // else sees a sign-in / register prompt instead (mirrors updateBuyerDirectoryAccess).
+  function updateFarmersPreviewAccess() {
+    const signedInBox = document.getElementById('farmers-preview-signed-in');
+    const signedOutBox = document.getElementById('farmers-preview-signed-out');
+    if (!signedInBox || !signedOutBox) return false;
+
+    if (isFarmerSignedIn()) {
+      signedInBox.style.display = 'block';
+      signedOutBox.style.display = 'none';
+      return true;
+    } else {
+      signedInBox.style.display = 'none';
+      signedOutBox.style.display = 'block';
+      return false;
+    }
+  }
+  // a sign-in / register prompt instead (mirrors updateFarmerListingFormAccess).
+  function updateBuyerDirectoryAccess() {
+    const signedInBox = document.getElementById('buyer-directory-signed-in');
+    const signedOutBox = document.getElementById('buyer-directory-signed-out');
+    if (!signedInBox || !signedOutBox) return false;
+
+    if (isBuyerSignedIn()) {
+      signedInBox.style.display = 'block';
+      signedOutBox.style.display = 'none';
+      return true;
+    } else {
+      signedInBox.style.display = 'none';
+      signedOutBox.style.display = 'block';
+      return false;
+    }
+  }
+
   // Shows the "Add Your Crop Details" form only for signed-in farmers;
   // everyone else sees a sign-in / register prompt instead.
   function updateFarmerListingFormAccess() {
@@ -831,6 +881,121 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Supabase fetch error on farmers preview, falling back to local data:', error.message);
       const mockSrc = listings.length > 0 ? listings : FALLBACK_LISTINGS;
       renderDirectory(mockSrc.slice(0, PREVIEW_LIMIT), farmersListingGrid, null);
+    }
+  }
+
+  // ==================== PROFILE PAGE — "MY LISTINGS" (farmer dashboard) ====================
+  // Fetches only the listings that belong to the currently signed-in farmer
+  // and renders them with a Delete button so the farmer can remove a
+  // listing once the crop is sold out / no longer available.
+  // We match on email (and phone as a fallback) since the listings table
+  // does not currently store the Supabase auth user id.
+  async function fetchMyListings(email, phone) {
+    const grid = document.getElementById('my-listings-grid');
+    if (!grid) return;
+
+    grid.innerHTML = `<p style="color:var(--text-muted);">Loading your listings...</p>`;
+
+    try {
+      if (!supabaseClient) {
+        throw new Error('Supabase client was not initialized properly.');
+      }
+      if (!email && !phone) {
+        throw new Error('No email or phone on file to match listings against.');
+      }
+
+      let query = supabaseClient.from('listings').select('*').order('created_at', { ascending: false });
+      if (email) {
+        query = query.eq('email', email);
+      } else {
+        query = query.eq('phone', phone);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const mine = (data || []).map(normalizeListing);
+      renderMyListings(mine);
+    } catch (error) {
+      console.warn('Could not load "My Listings" from Supabase:', error.message);
+      // Fallback: filter whatever is already in memory (e.g. listings the
+      // farmer just published locally while offline).
+      const mine = listings.filter(item =>
+        (email && item.email && item.email.toLowerCase() === email.toLowerCase()) ||
+        (phone && item.phone === phone)
+      );
+      renderMyListings(mine);
+    }
+  }
+
+  function renderMyListings(dataList) {
+    const grid = document.getElementById('my-listings-grid');
+    if (!grid) return;
+
+    if (!dataList || dataList.length === 0) {
+      grid.innerHTML = `<p style="color:var(--text-muted);">You haven't published any crop listings yet. Use the "Add Your Crop Details" form on the Farmers page to publish one.</p>`;
+      return;
+    }
+
+    grid.innerHTML = dataList.map(item => {
+      const targetId = item._id || item.id;
+      const availabilityText = getAvailability(item);
+      return `
+        <div class="my-listing-card">
+          <div class="my-listing-card-top">
+            <h4>${item.crop}</h4>
+          </div>
+          <div class="my-listing-meta">Available Stock: ${availabilityText}</div>
+          <div class="my-listing-meta">Location: ${item.location || 'Not available'}</div>
+          <div class="my-listing-meta">Price: ${getPriceDisplay(item)}</div>
+          <button type="button" class="btn btn-danger delete-listing-trigger" data-id="${targetId}">Delete Listing</button>
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.delete-listing-trigger').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        deleteMyListing(id);
+      });
+    });
+  }
+
+  async function deleteMyListing(id) {
+    const confirmed = window.confirm('Delete this listing? This cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      if (!supabaseClient) {
+        throw new Error('Supabase client was not initialized properly.');
+      }
+      // id may be a UUID/number from Supabase, so pass it through as-is.
+      const { error } = await supabaseClient.from('listings').delete().eq('id', id);
+      if (error) throw error;
+
+      showToast('Listing deleted.', 'success');
+    } catch (error) {
+      console.warn('Supabase delete error, removing locally instead:', error.message);
+      showToast('Listing removed (offline mode — it may reappear once reconnected).', 'success');
+    }
+
+    // Keep everything in sync regardless of whether the delete hit the
+    // database or only happened locally: drop it from the in-memory
+    // listings array and re-render any grid currently on screen.
+    listings = listings.filter(item => String(item._id || item.id) !== String(id));
+
+    const { email, phone } = (() => {
+      const { user } = getAuthSession();
+      const meta = (user && user.user_metadata) || {};
+      return { email: (user && user.email) || '', phone: meta.phone || '' };
+    })();
+    fetchMyListings(email, phone);
+
+    if (document.getElementById('page-farmers')?.classList.contains('active') && isFarmerSignedIn()) {
+      fetchFarmersPreview();
+    }
+    if (document.getElementById('page-buyers')?.classList.contains('active') && isBuyerSignedIn()) {
+      fetchListings();
     }
   }
 
@@ -1226,10 +1391,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Refresh whichever grid(s) are currently visible so the new
         // listing shows up immediately without a page reload.
-        if (document.getElementById('page-farmers')?.classList.contains('active')) {
+        if (document.getElementById('page-farmers')?.classList.contains('active') && isFarmerSignedIn()) {
           fetchFarmersPreview();
         }
-        if (document.getElementById('page-buyers')?.classList.contains('active')) {
+        if (document.getElementById('page-buyers')?.classList.contains('active') && isBuyerSignedIn()) {
           fetchListings();
         }
       } catch (error) {
@@ -1262,10 +1427,10 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(`Listing saved locally — "${crop}" is now visible in this session.`, 'success');
         farmerListingForm.reset();
 
-        if (document.getElementById('page-farmers')?.classList.contains('active')) {
+        if (document.getElementById('page-farmers')?.classList.contains('active') && isFarmerSignedIn()) {
           renderDirectory(listings.slice(0, 6), farmersListingGrid, null);
         }
-        if (document.getElementById('page-buyers')?.classList.contains('active')) {
+        if (document.getElementById('page-buyers')?.classList.contains('active') && isBuyerSignedIn()) {
           renderDirectory(listings, directoryGrid, resultsCountTitle);
         }
       }
