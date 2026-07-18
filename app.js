@@ -680,22 +680,44 @@ document.addEventListener('DOMContentLoaded', () => {
   if (header) {
     let headerTicking = false;
     let lastScrollY = window.scrollY;
+    // The point we last measured direction FROM — only updated when the
+    // header's hidden state actually changes (see DIRECTION_THRESHOLD below).
+    let directionAnchorY = window.scrollY;
     const HEADER_HIDE_THRESHOLD = 80; // don't hide until scrolled a bit past the top
+    // Minimum net movement (px) required before flipping hidden state.
+    // Without this, momentum/inertial scrolling and iOS elastic overscroll
+    // make scrollY jitter by a pixel or two frame-to-frame even during one
+    // continuous scroll gesture, which made the header flicker in and out
+    // rapidly. Requiring a real, sustained movement in one direction before
+    // toggling absorbs that noise.
+    const DIRECTION_THRESHOLD = 10;
     const updateHeaderScrolled = () => {
       const currentY = window.scrollY;
       header.classList.toggle('scrolled', currentY > 40);
 
       // Auto-hide the header while actively scrolling down through content
       // (so it never sits on top of text you're reading), and bring it back
-      // the moment the user scrolls up to look for it. Skipped while the
-      // mobile menu sheet is open so it can't disappear mid-interaction.
+      // once the user has clearly scrolled up to look for it. Skipped while
+      // the mobile menu sheet is open so it can't disappear mid-interaction.
       const menuOpen = navMenu && navMenu.classList.contains('active');
       if (!menuOpen) {
-        if (currentY > lastScrollY && currentY > HEADER_HIDE_THRESHOLD) {
-          header.classList.add('header-hidden');
-        } else {
+        if (currentY <= HEADER_HIDE_THRESHOLD) {
           header.classList.remove('header-hidden');
+          directionAnchorY = currentY;
+        } else {
+          const delta = currentY - directionAnchorY;
+          if (delta > DIRECTION_THRESHOLD) {
+            header.classList.add('header-hidden');
+            directionAnchorY = currentY;
+          } else if (delta < -DIRECTION_THRESHOLD) {
+            header.classList.remove('header-hidden');
+            directionAnchorY = currentY;
+          }
+          // else: movement hasn't crossed the threshold yet — leave the
+          // header's current state alone instead of re-evaluating it.
         }
+      } else {
+        directionAnchorY = currentY;
       }
 
       lastScrollY = currentY;
@@ -1987,6 +2009,11 @@ document.addEventListener('DOMContentLoaded', () => {
  * ==================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
   const lgReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Aliases matching the names used further down in this same closure
+  // (glow-card spotlight + scroll-reveal checks) so those features run
+  // instead of throwing a ReferenceError.
+  const lgPrefersReducedMotion = lgReducedMotion;
+  const lgHasHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
 
   // ---- Notification banner dismiss ----
   document.querySelectorAll('.notif-banner-close').forEach((btn) => {
