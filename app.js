@@ -45,6 +45,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // working on dynamically-rendered listing cards. Skipped on touch devices
   // and when the user prefers reduced motion (handled primarily via CSS,
   // this JS also bails out early as a safety net).
+  // ==================== CURSOR-FOLLOWING BACKGROUND GLOW ====================
+  // Moves the small green glow (html::after in styles.css, driven by the
+  // --mx/--my CSS variables) toward the cursor. Desktop-only: devices
+  // without a real mouse (touch/mobile) never attach this listener, so
+  // mobile performance and graphics are completely untouched — the
+  // floating background there just keeps its own independent animation.
+  (function initCursorGlow() {
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const hasRealMouse = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (prefersReducedMotion || !hasRealMouse) return;
+
+    const root = document.documentElement;
+    let pendingEvent = null;
+    let rafQueued = false;
+
+    const applyGlowPosition = () => {
+      rafQueued = false;
+      const e = pendingEvent;
+      if (!e) return;
+      root.style.setProperty('--mx', `${e.clientX}px`);
+      root.style.setProperty('--my', `${e.clientY}px`);
+    };
+
+    document.addEventListener('mousemove', (e) => {
+      pendingEvent = e;
+      if (!rafQueued) {
+        rafQueued = true;
+        requestAnimationFrame(applyGlowPosition);
+      }
+    }, { passive: true });
+  })();
+
   (function initTiltEffect() {
     const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const isTouchDevice = window.matchMedia && window.matchMedia('(hover: none)').matches;
