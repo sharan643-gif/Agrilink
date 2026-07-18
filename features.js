@@ -1608,6 +1608,7 @@
     safeRun(initAsyncButtonStates);
     safeRun(initShareDirectoryLink);
   }
+   
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => setTimeout(runAll, 0));
