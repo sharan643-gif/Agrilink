@@ -881,7 +881,8 @@
         </div>
       </div>
 
-      <!-- Meet Our Farmers — Listing Directory Preview -->
+      <!-- Meet Our Farmers — Listing Directory Preview (farmers only) -->
+      <div id="farmers-preview-signed-in" style="display:none;">
       <div class="section-padding">
         <div class="container">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
@@ -898,6 +899,25 @@
           </div>
         </div>
       </div>
+      </div>
+      <!-- End farmers-preview-signed-in -->
+
+      <!-- Shown instead of the preview when no farmer is signed in -->
+      <div id="farmers-preview-signed-out" style="display:none;">
+        <div class="container section-padding" style="max-width:600px;">
+          <div class="auth-card" style="margin:0 auto; text-align:center;">
+            <div class="auth-icon farmer-icon-bg" style="margin:0 auto 1rem;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg>
+            </div>
+            <h3 style="margin-bottom:0.5rem;">Sign In to View Farmer Listings</h3>
+            <p style="color:var(--text-muted); margin-bottom:1.5rem;">Create a free Farmer account (or sign in if you already have one) to see who else is listing produce on AgriLink.</p>
+            <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+              <a href="#/farmer-signin" class="btn btn-primary">Farmer Sign In</a>
+              <a href="#/farmer-register" class="btn btn-secondary">Create Farmer Account</a>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ==================== FOR BUYERS PAGE VIEW ==================== -->
@@ -910,7 +930,8 @@
         </div>
       </div>
 
-      <!-- Real-time Search Engine Bar -->
+      <!-- Real-time Search Engine Bar — buyers only -->
+      <div id="buyer-directory-signed-in" style="display:none;">
       <div class="search-filter-section">
         <div class="container">
           <div class="search-bar-container">
@@ -1012,6 +1033,25 @@
 
         <div class="directory-grid" id="directory-grid">
           <!-- Populated dynamically via app.js -->
+        </div>
+      </div>
+      </div>
+      <!-- End buyer-directory-signed-in -->
+
+      <!-- Shown instead of the directory when no buyer is signed in -->
+      <div id="buyer-directory-signed-out" style="display:none;">
+        <div class="container section-padding" style="max-width:600px;">
+          <div class="auth-card" style="margin:0 auto; text-align:center;">
+            <div class="auth-icon buyer-icon-bg" style="margin:0 auto 1rem;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            </div>
+            <h3 style="margin-bottom:0.5rem;">Sign In to View Farmer Listings</h3>
+            <p style="color:var(--text-muted); margin-bottom:1.5rem;">Create a free Buyer account (or sign in if you already have one) to search and contact verified farmers directly.</p>
+            <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+              <a href="#/buyer-signin" class="btn btn-primary">Buyer Sign In</a>
+              <a href="#/buyer-register" class="btn btn-secondary">Create Buyer Account</a>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1304,6 +1344,14 @@
             <div class="auth-footer" style="display:flex; gap:12px; margin-top:1.5rem;">
               <button type="button" class="btn btn-primary" id="profile-dashboard-btn" style="flex:1;">Go to Dashboard</button>
               <button type="button" class="btn btn-secondary" id="profile-signout-btn" style="flex:1;">Sign Out</button>
+            </div>
+
+            <!-- My Listings — only shown for signed-in Farmers -->
+            <div class="my-listings-section" id="profile-my-listings-section" style="display:none;">
+              <h3>My Crop Listings</h3>
+              <div id="my-listings-grid" class="my-listings-grid">
+                <p style="color:var(--text-muted);">Loading your listings...</p>
+              </div>
             </div>
           </div>
         </div>
