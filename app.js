@@ -691,9 +691,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // rapidly. Requiring a real, sustained movement in one direction before
     // toggling absorbs that noise.
     const DIRECTION_THRESHOLD = 10;
+    // Below 768px the floating bottom tab bar (#mobile-tabbar) already gives
+    // permanent, always-visible access to primary navigation, so the header
+    // doesn't need to auto-hide there at all. Mobile browsers also animate
+    // their own address bar in and out independently of page scroll, which
+    // was compounding with this effect to make the header look like it kept
+    // flickering. Disabling auto-hide on mobile removes our JS as a source
+    // of that entirely — only the browser's own (unavoidable) toolbar
+    // motion remains, which doesn't move this element.
+    const mobileMedia = window.matchMedia('(max-width: 768px)');
     const updateHeaderScrolled = () => {
       const currentY = window.scrollY;
       header.classList.toggle('scrolled', currentY > 40);
+
+      if (mobileMedia.matches) {
+        header.classList.remove('header-hidden');
+        directionAnchorY = currentY;
+        lastScrollY = currentY;
+        headerTicking = false;
+        return;
+      }
 
       // Auto-hide the header while actively scrolling down through content
       // (so it never sits on top of text you're reading), and bring it back
@@ -730,8 +747,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!headerTicking) {
         headerTicking = true;
         requestAnimationFrame(updateHeaderScrolled);
+
       }
     }, { passive: true });
+
+    // Re-evaluate immediately on resize/orientation-change (phone rotation,
+    // the mobile browser's address bar collapsing/expanding, entering the
+    // mobile breakpoint via a desktop window resize, etc.) instead of
+    // waiting for the next scroll tick. This guarantees the header can
+    // never be caught mid-"hidden" on a mobile viewport.
+    window.addEventListener('resize', updateHeaderScrolled, { passive: true });
+    window.addEventListener('orientationchange', updateHeaderScrolled);
+    if (typeof mobileMedia.addEventListener === 'function') {
+      mobileMedia.addEventListener('change', updateHeaderScrolled);
+    } else if (typeof mobileMedia.addListener === 'function') {
+      // Safari < 14 fallback
+      mobileMedia.addListener(updateHeaderScrolled);
+    }
   }
 
 
